@@ -16,8 +16,10 @@ bot.on('error', (err) => {
 
 const SERVER_NAME = 'Obsidian Bears ';
 const TEXT_CHANNEL = 'general';
-const VOICE_CHANNEL = 'General Chat';
+const VOICE_CHANNEL = 'AFK Chat';
+//const VOICE_CHANNEL = 'General Chat';
 //const VOICE_CHANNEL = 'Hubot\'s DJ Booth';
+//const VOICE_CHANNEL = 'Minecraft Chat';
 
 bot.on('ready', () => setImmediate(() => {
   const servers = bot.servers;
