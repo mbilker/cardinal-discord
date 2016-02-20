@@ -18,6 +18,8 @@
   "homepage": "https://github.com/mbilker/music-discord#readme",
   "dependencies": {
     "discord.js": "^6.0.0",
+    "icy": "^2.1.0",
+    "lame": "^1.2.3",
     "lodash": "^4.5.0",
     "node-opus": "git+https://github.com/mbilker/node-opus.git"
   }
