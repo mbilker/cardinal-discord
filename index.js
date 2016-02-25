@@ -18,7 +18,7 @@ bot.on('error', (err) => {
 
 const URL = 'http://172.16.21.4:8000';
 
-const SERVER_NAME = 'Obsidian Bears ';
+const SERVER_NAME = 'Obsidian Bears';
 //const TEXT_CHANNEL = 'song-of-the-week';
 const TEXT_CHANNEL = 'hubot-songlist';
 //const VOICE_CHANNEL = 'General Chat';
