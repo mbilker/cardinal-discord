@@ -78,7 +78,9 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
 
   output.once('readable', () => setTimeout(() => {
     function onEnd() {
-      discordPlayStream(output).then(onEnd);
+      discordPlayStream(output).then(() => {
+        setTimeout(onEnd, Settings.STATUS_DELAY_TIME);
+      });
     };
     onEnd();
   }, Settings.STATUS_DELAY_TIME));
@@ -92,7 +94,7 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
 function ReduceVolumeStream() {
   stream.Transform.call(this);
 
-  this.volume = 0.3;
+  this.volume = Settings.STREAM_VOLUME;
   this.multiplier = Math.tan(this.volume);
 };
 util.inherits(ReduceVolumeStream, stream.Transform);
