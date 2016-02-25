@@ -14,7 +14,8 @@ const Discord = require('./bot');
 
 const URL = 'http://172.16.21.4:8000';
 
-var textChannel = 0;
+var textChannel = null;
+var lastStreamTitle = null;
 
 Dispatcher.on(Actions.DISCORD_FOUND_TEXT_CHANNEL, (newTextChannel) => {
   textChannel = newTextChannel;
@@ -28,29 +29,39 @@ Dispatcher.on(Actions.DISCORD_JOINED_VOICE_CHANNEL, () => {
       const parsed = icy.parse(meta);
       debug('parsed metadata', parsed);
 
-      if (parsed && parsed.StreamTitle) {
-        Discord.bot.sendMessage(textChannel, parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
-        Discord.bot.setPlayingGame(parsed.StreamTitle).then(() => console.log(`set status to song`));
+      if (parsed && parsed.StreamTitle !== lastStreamTitle) {
+        lastStreamTitle = parsed.StreamTitle;
+
+        setTimeout(() => {
+          Discord.bot.sendMessage(textChannel, parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
+          Discord.bot.setPlayingGame(parsed.StreamTitle).then(() => console.log(`set status to song`));
+        }, Math.max(1000, Settings.STATUS_DELAY_TIME) - 1000);
       }
 
       Dispatcher.emit(Actions.ICY_METADATA, meta);
     });
 
     //bot.voiceConnection.playRawStream(res.pipe(new lame.Decoder()));
-    //bot.voiceConnection.playRawStream(res, { volume: 0.25 });
+    //Discord.bot.voiceConnection.playRawStream(res, { volume: 0.3 });
 
-    setImmediate(() => Dispatcher.emit(Actions.ICY_CONNECTED, res));
+    Dispatcher.emit(Actions.ICY_CONNECTED, res);
   });
 });
 
-Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
-  const stream = new ReduceVolumeStream();
-  const output = res.pipe(new lame.Decoder()).pipe(stream);
-  //const output = res;
+function discordPlayStream(output) {
+  return new Promise((resolve, reject) => {
+    var intent = Discord.bot.voiceConnection.playStream(output, 2);
 
-  output.once('readable', () => {
-    Discord.bot.voiceConnection.instream = res;
-    Discord.bot.voiceConnection.playStream(output, 2);
+    intent.on('time', (time) => debug('intent time', time));
+
+    intent.on('end', () => {
+      debug('stream end reported');
+      //res.end();
+      //output.end();
+
+      //Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL);
+      resolve(true);
+    });
 
     //output.pipe(new Speaker({
     //  channels: 2,
@@ -58,8 +69,21 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
     //  bitDepth: 16
     //}));
   });
+}
 
-  output.on('error', (err) => {
+Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
+  const stream = new ReduceVolumeStream();
+  const output = res.pipe(new lame.Decoder()).pipe(stream);
+  //const output = res;
+
+  output.once('readable', () => setTimeout(() => {
+    function onEnd() {
+      discordPlayStream(output).then(onEnd);
+    };
+    onEnd();
+  }, Settings.STATUS_DELAY_TIME));
+
+  output.once('error', (err) => {
     console.error(err);
     Discord.bot.voiceConnection.stopPlaying();
   });
