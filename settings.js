@@ -4,5 +4,5 @@ module.exports = Object.freeze({
   VOICE_CHANNEL: 'Hubot\'s DJ Booth',
 
   STATUS_DELAY_TIME: 3000,
-  STREAM_VOLUME: 0.5
+  STREAM_VOLUME: 0.2
 });
