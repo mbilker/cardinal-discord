@@ -1,4 +1,4 @@
-const debug = require('debug')('discord');
+const debug = require('debug')('hubot-discord');
 const Discord = require('discord.js');
 
 const Actions = require('./actions');

@@ -1,7 +1,9 @@
+"use strict";
+
 const stream = require('stream');
 const util = require('util');
 
-const debug = require('debug')('discord-icy');
+const debug = require('debug')('hubot-icy');
 const icy = require('icy');
 const lame = require('lame');
 //const Speaker = require('speaker');
@@ -52,7 +54,7 @@ function discordPlayStream(output) {
   return new Promise((resolve, reject) => {
     var intent = Discord.bot.voiceConnection.playStream(output, 2);
 
-    intent.on('time', (time) => debug('intent time', time));
+    //intent.on('time', (time) => debug('intent time', time));
 
     intent.on('end', () => {
       debug('stream end reported');
@@ -76,6 +78,12 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   const output = res.pipe(new lame.Decoder()).pipe(stream);
   //const output = res;
 
+  function volumeListener(volume) {
+    debug('setting stream volume to ' + volume);
+    stream.setVolume(volume / 100);
+  };
+  Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
+
   output.once('readable', () => setTimeout(() => {
     function onEnd() {
       discordPlayStream(output).then(() => {
@@ -94,14 +102,16 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
 function ReduceVolumeStream() {
   stream.Transform.call(this);
 
-  this.volume = Settings.STREAM_VOLUME;
-  this.multiplier = Math.tan(this.volume);
+  this.setVolume(Settings.STREAM_VOLUME);
 };
 util.inherits(ReduceVolumeStream, stream.Transform);
 
-ReduceVolumeStream.prototype._transform = function _transform(chunk, encoding, cb) {
-  "use strict";
+ReduceVolumeStream.prototype.setVolume = function setVolume(volume) {
+  this.volume = volume;
+  this.multiplier = Math.tan(this.volume);
+};
 
+ReduceVolumeStream.prototype._transform = function _transform(chunk, encoding, cb) {
   const out = new Buffer(chunk.length);
 
   for (var i = 0; i < chunk.length; i += 2) {

@@ -7,7 +7,9 @@ const Actions = keyMirror({
   DISCORD_JOINED_VOICE_CHANNEL: null,
 
   ICY_CONNECTED: null,
-  ICY_METADATA: null
+  ICY_METADATA: null,
+
+  SET_AUDIO_VOLUME: null
 });
 
 module.exports = Actions;
