@@ -108,14 +108,13 @@ util.inherits(ReduceVolumeStream, stream.Transform);
 
 ReduceVolumeStream.prototype.setVolume = function setVolume(volume) {
   this.volume = volume;
-  this.multiplier = Math.tan(this.volume);
 };
 
 ReduceVolumeStream.prototype._transform = function _transform(chunk, encoding, cb) {
   const out = new Buffer(chunk.length);
 
   for (var i = 0; i < chunk.length; i += 2) {
-    var uint = Math.floor(this.multiplier * chunk.readInt16LE(i));
+    var uint = Math.floor(this.volume * chunk.readInt16LE(i));
 
     uint = Math.min(32767, uint);
     uint = Math.max(-32767, uint);
