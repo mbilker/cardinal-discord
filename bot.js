@@ -7,6 +7,8 @@ const Settings = require('./settings');
 
 const bot = new Discord.Client();
 
+const oath = require('./hubot_oath.json');
+
 bot.on('debug', (msg) => {
   debug(msg);
 });
@@ -64,7 +66,7 @@ Dispatcher.on(Actions.DISCORD_FOUND_VOICE_CHANNEL, (voiceChannel) => {
   });
 });
 
-bot.login('services@mbilker.us', 'thisismyhubot').then(() => {
+bot.loginWithToken(oath.response.token).then(() => {
   console.log('logged in');
 });
 
