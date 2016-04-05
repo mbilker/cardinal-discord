@@ -12,7 +12,7 @@ const oath = require('./hubot_oath.json');
 bot.on('debug', (msg) => {
   debug(msg);
 });
-bot.on('error', (err) => {
+function shutdownCb(err) {
   console.log(err && err.stack);
 
   try {
@@ -20,21 +20,23 @@ bot.on('error', (err) => {
   } finally {
     return process.exit(1);
   }
+}
+bot.on('error', shutdownCb);
+Dispatcher.on('ctrlc', shutdownCb);
+
+//bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
+bot.on('ready', () => console.log('bot ready'));
+
+bot.on('serverCreated', (server) => {
+  const name = server.name;
+
+  if (name === Settings.SERVER_NAME) {
+    console.log('Found correct server!');
+    Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, server);
+  }
 });
 
-bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
-
-Dispatcher.on(Actions.DISCORD_READY, (bot) => {
-  const servers = bot.servers;
-  const names = bot.servers.map(server => server.name);
-  console.log(names);
-
-  const serverIndex = names.indexOf(Settings.SERVER_NAME);
-  if (serverIndex === -1) {
-    throw new Error('Cannot find server');
-  }
-  const server = servers[serverIndex];
-
+Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (server) => {
   const channelNames = server.channels.map(channel => channel.name);
   console.log(channelNames);
 
