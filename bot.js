@@ -22,12 +22,6 @@ bot.on('error', (err) => {
   }
 });
 
-//const SERVER_NAME = 'Obsidian Bears';
-//const TEXT_CHANNEL = 'song-of-the-week';
-//const TEXT_CHANNEL = 'hubot-songlist';
-//const VOICE_CHANNEL = 'General Chat';
-//const VOICE_CHANNEL = 'Hubot\'s DJ Booth';
-
 bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
 
 Dispatcher.on(Actions.DISCORD_READY, (bot) => {
