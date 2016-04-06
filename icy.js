@@ -11,18 +11,21 @@ const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
 const Settings = require('./settings');
 
-const client = require('./bot');
+const client = require('./bot').client;
 
-const URL = 'http://172.16.21.4:8000';
+const URL = 'http://192.168.1.16:8000';
 
 var textChannel = null;
+var voiceConnection = null;
 var lastStreamTitle = null;
 
 Dispatcher.on(Actions.DISCORD_FOUND_TEXT_CHANNEL, (newTextChannel) => {
   textChannel = newTextChannel;
 });
 
-Dispatcher.on(Actions.DISCORD_JOINED_VOICE_CHANNEL, () => {
+Dispatcher.on(Actions.DISCORD_JOINED_VOICE_CHANNEL, (newVoiceConnectionInfo) => {
+  voiceConnection = newVoiceConnectionInfo.voiceConnection;
+
   icy.get(URL, (res) => {
     debug('received icy response', res.headers);
 
@@ -34,16 +37,14 @@ Dispatcher.on(Actions.DISCORD_JOINED_VOICE_CHANNEL, () => {
         lastStreamTitle = parsed.StreamTitle;
 
         setTimeout(() => {
-          Discord.bot.sendMessage(textChannel, parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
-          Discord.bot.setPlayingGame(parsed.StreamTitle).then(() => console.log(`set status to song`));
+          textChannel.sendMessage(parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
+          client.User.setGame({ name: parsed.StreamTitle });
+          console.log('set status to song');
         }, Math.max(1000, Settings.STATUS_DELAY_TIME) - 1000);
       }
 
       Dispatcher.emit(Actions.ICY_METADATA, meta);
     });
-
-    //bot.voiceConnection.playRawStream(res.pipe(new lame.Decoder()));
-    //Discord.bot.voiceConnection.playRawStream(res, { volume: 0.3 });
 
     Dispatcher.emit(Actions.ICY_CONNECTED, res);
   });
@@ -74,18 +75,32 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   };
   Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
 
+  const bitDepth = 16;
+  const sampleRate = 48000;
+  const options = {
+    frameDuration: 60,
+    sampleRate: sampleRate,
+    channels: 2,
+    float: false
+  };
+  const readSize = sampleRate / 1000 * options.frameDuration * bitDepth / 8 * options.channels;
   output.once('readable', () => setTimeout(() => {
-    function onEnd() {
-      discordPlayStream(output).then(() => {
-        setTimeout(onEnd, Settings.STATUS_DELAY_TIME);
-      });
+    const encoder = voiceConnection.getEncoder(options)
+    const needBuffer = () => encoder.onNeedBuffer();
+    encoder.onNeedBuffer = function() {
+      const chunk = output.read(readSize);
+
+      if (!chunk) return setTimeout(needBuffer, options.frameDuration);
+
+      const sampleCount = readSize / options.channels / (bitDepth / 8);
+      encoder.enqueue(chunk, sampleCount);
     };
-    onEnd();
+    needBuffer();
   }, Settings.STATUS_DELAY_TIME));
 
   output.once('error', (err) => {
     console.error(err);
-    Discord.bot.voiceConnection.stopPlaying();
+    //Discord.bot.voiceConnection.stopPlaying();
   });
 });
 

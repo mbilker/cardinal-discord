@@ -8,9 +8,9 @@ const Settings = require('./settings');
 const client = new Discordie();
 const oath = require('./hubot_oath.json');
 
-bot.on('debug', (msg) => {
-  debug(msg);
-});
+//bot.on('debug', (msg) => {
+//  debug(msg);
+//});
 function shutdownCb(err) {
   console.log(err && err.stack);
 
@@ -20,7 +20,7 @@ function shutdownCb(err) {
     return process.exit(1);
   }
 }
-bot.on('error', shutdownCb);
+//bot.on('error', shutdownCb);
 Dispatcher.on('ctrlc', shutdownCb);
 
 //bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
@@ -72,7 +72,7 @@ Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (guild) => {
 Dispatcher.on(Actions.DISCORD_FOUND_VOICE_CHANNEL, (voiceChannel) => {
   voiceChannel.join(false, false).then((info, err) => {
     debug('joined voice chat');
-    Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL);
+    Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL, info);
   });
 });
 
