@@ -76,6 +76,8 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
 
   decode.on('format', (format) => {
+    console.log('received format:', format);
+
     const frameDuration = 20;
     const bitDepth = format.bitDepth;
     const sampleRate = format.sampleRate;
@@ -84,13 +86,16 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
     const options = { frameDuration, sampleRate, channels, float: false, engine: 'native' };
     const readSize = sampleRate / 1000 * frameDuration * bitDepth / 8 * channels;
 
-    output.once('readable', () => {
+    output.once('readable', () => setTimeout(() => {
+      console.log('reading from stream');
+
       const encoder = voiceConnection.getEncoder(options)
       const needBuffer = () => encoder.onNeedBuffer();
       encoder.onNeedBuffer = function() {
         const chunk = output.read(readSize);
 
         if (!chunk) {
+          console.log('out of buffer');
           setTimeout(needBuffer, frameDuration);
           return;
         }
@@ -99,7 +104,7 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
         encoder.enqueue(chunk, sampleCount);
       };
       needBuffer();
-    });
+    }, Settings.STATUS_DELAY_TIME));
   });
 
   output.on('error', (err) => {
