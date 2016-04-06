@@ -25,7 +25,9 @@ Dispatcher.on('ctrlc', shutdownCb);
 
 client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   console.log(`Connected as: ${client.User.username}`);
+});
 
+client.Dispatcher.on(Discordie.Events.GUILD_CREATE, (e) => {
   const guild = client.Guilds.getBy('name', Settings.SERVER_NAME);
 
   if (guild) {
