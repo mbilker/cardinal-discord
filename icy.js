@@ -37,7 +37,7 @@ Dispatcher.on(Actions.DISCORD_JOINED_VOICE_CHANNEL, (newVoiceConnectionInfo) => 
         lastStreamTitle = parsed.StreamTitle;
 
         setTimeout(() => {
-          textChannel.sendMessage(parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
+          //textChannel.sendMessage(parsed.StreamTitle).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
           client.User.setGame({ name: parsed.StreamTitle });
           console.log('set status to song');
         }, Math.max(1000, Settings.STATUS_DELAY_TIME) - 1000);
@@ -75,30 +75,33 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   };
   Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
 
+  const frameDuration = 20;
   const bitDepth = 16;
   const sampleRate = 48000;
-  const options = {
-    frameDuration: 60,
-    sampleRate: sampleRate,
-    channels: 2,
-    float: false
-  };
-  const readSize = sampleRate / 1000 * options.frameDuration * bitDepth / 8 * options.channels;
+  const channels = 2;
+
+  const options = { frameDuration, sampleRate, channels, float: false };
+
+  const readSize = sampleRate / 1000 * frameDuration * bitDepth / 8 * channels;
   output.once('readable', () => setTimeout(() => {
     const encoder = voiceConnection.getEncoder(options)
     const needBuffer = () => encoder.onNeedBuffer();
     encoder.onNeedBuffer = function() {
       const chunk = output.read(readSize);
 
-      if (!chunk) return setTimeout(needBuffer, options.frameDuration);
+      if (!chunk) {
+        console.log('no buffer chunk');
+        setTimeout(needBuffer, options.frameDuration);
+        return;
+      }
 
-      const sampleCount = readSize / options.channels / (bitDepth / 8);
+      const sampleCount = readSize / channels / (bitDepth / 8);
       encoder.enqueue(chunk, sampleCount);
     };
     needBuffer();
   }, Settings.STATUS_DELAY_TIME));
 
-  output.once('error', (err) => {
+  output.on('error', (err) => {
     console.error(err);
     //Discord.bot.voiceConnection.stopPlaying();
   });
