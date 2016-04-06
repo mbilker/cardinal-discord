@@ -31,6 +31,9 @@ client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   if (guild) {
     console.log('Found correct server!');
     Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
+  } else {
+    console.log('Guild not found!');
+    shutdownCb();
   }
 });
 
