@@ -1,12 +1,11 @@
 const debug = require('debug')('hubot-discord');
-const Discord = require('discord.js');
+const Discordie = require('discordie');
 
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
 const Settings = require('./settings');
 
-const bot = new Discord.Client();
-
+const client = new Discordie();
 const oath = require('./hubot_oath.json');
 
 bot.on('debug', (msg) => {
@@ -25,47 +24,62 @@ bot.on('error', shutdownCb);
 Dispatcher.on('ctrlc', shutdownCb);
 
 //bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
-bot.on('ready', () => console.log('bot ready'));
+client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
+  console.log(`Connected as: ${client.User.username}`);
 
-bot.on('serverCreated', (server) => {
-  const name = server.name;
+  const guild = client.Guilds.getBy('name', Settings.SERVER_NAME);
 
-  if (name === Settings.SERVER_NAME) {
+  if (guild) {
     console.log('Found correct server!');
-    Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, server);
+    Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
   }
 });
 
-Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (server) => {
-  const channelNames = server.channels.map(channel => channel.name);
-  console.log(channelNames);
+client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
+  const delay = 5000;
+  const sdelay = Math.floor(delay / 100) / 10;
 
-  const textChannelIndex = channelNames.indexOf(Settings.TEXT_CHANNEL);
-  if (textChannelIndex === -1) {
-    Dispatcher.emit('error', new Error('Cannot find text channel'));
+  if (e.error.message.indexOf('gateway') !== -1) {
+    console.log(`Disconnected from gw, resuming in ${sdelay} seconds`);
+  } else {
+    console.log(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
   }
-  const textChannel = server.channels[textChannelIndex];
+  setTimeout(connect, delay);
+});
+
+client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
+  if (e.message.content === 'ping') {
+    e.message.channel.sendMessage('pong');
+  }
+});
+
+Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (guild) => {
+  const textChannel = guild.textChannels.filter(c => c.name === Settings.TEXT_CHANNEL)[0];
+  if (!textChannel) {
+    Dispatcher.emit('error', new Error('Cannot find text channel'));
+    return;
+  }
   Dispatcher.emit(Actions.DISCORD_FOUND_TEXT_CHANNEL, textChannel);
 
-  const voiceChannelIndex = channelNames.indexOf(Settings.VOICE_CHANNEL);
-  if (voiceChannelIndex === -1) {
+  const voiceChannel = guild.voiceChannels.filter(c => c.name === Settings.VOICE_CHANNEL)[0];
+  if (!voiceChannel) {
     Dispatcher.emit('error', new Error('Cannot find voice channel'));
+    return;
   }
-  const voiceChannel = server.channels[voiceChannelIndex];
   Dispatcher.emit(Actions.DISCORD_FOUND_VOICE_CHANNEL, voiceChannel);
 });
 
 Dispatcher.on(Actions.DISCORD_FOUND_VOICE_CHANNEL, (voiceChannel) => {
-  bot.joinVoiceChannel(voiceChannel).then(() => {
+  voiceChannel.join(false, false).then((info, err) => {
     debug('joined voice chat');
     Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL);
   });
 });
 
-bot.loginWithToken(oath.response.token).then(() => {
-  console.log('logged in');
+client.connect({
+  token: oath.response.token
 });
 
 module.exports = {
-  bot
+  client
 };

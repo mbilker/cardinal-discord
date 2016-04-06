@@ -6,13 +6,12 @@ const util = require('util');
 const debug = require('debug')('hubot-icy');
 const icy = require('icy');
 const lame = require('lame');
-//const Speaker = require('speaker');
 
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
 const Settings = require('./settings');
 
-const Discord = require('./bot');
+const client = require('./bot');
 
 const URL = 'http://172.16.21.4:8000';
 
@@ -58,25 +57,16 @@ function discordPlayStream(output) {
 
     intent.on('end', () => {
       debug('stream end reported');
-      //res.end();
-      //output.end();
 
       //Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL);
       resolve(true);
     });
-
-    //output.pipe(new Speaker({
-    //  channels: 2,
-    //  sampleRate: 48000,
-    //  bitDepth: 16
-    //}));
   });
 }
 
 Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   const stream = new ReduceVolumeStream();
   const output = res.pipe(new lame.Decoder()).pipe(stream);
-  //const output = res;
 
   function volumeListener(volume) {
     debug('setting stream volume to ' + volume);

@@ -18,12 +18,11 @@
   "homepage": "https://github.com/mbilker/music-discord#readme",
   "dependencies": {
     "debug": "^2.2.0",
-    "discord.js": "github:hydrabolt/discord.js#indev",
+    "discordie": "github:qeled/discordie",
     "express": "^4.13.4",
     "icy": "^2.1.0",
     "keymirror": "^0.1.1",
     "lame": "^1.2.3",
-    "lodash": "^4.5.0",
-    "node-opus": "git+https://github.com/mbilker/node-opus.git"
+    "lodash": "^4.5.0"
   }
 }
