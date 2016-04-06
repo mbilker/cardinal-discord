@@ -13,7 +13,7 @@ const Settings = require('./settings');
 
 const client = require('./bot').client;
 
-const URL = 'http://192.168.1.16:8000';
+const URL = 'http://127.0.0.1:8000';
 
 var textChannel = null;
 var voiceConnection = null;
@@ -76,12 +76,12 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
   Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
 
   decode.on('format', (format) => {
-    const frameDuration = 60;
+    const frameDuration = 20;
     const bitDepth = format.bitDepth;
     const sampleRate = format.sampleRate;
     const channels = format.channels;
 
-    const options = { frameDuration, sampleRate, channels, float: false };
+    const options = { frameDuration, sampleRate, channels, float: false, engine: 'native' };
     const readSize = sampleRate / 1000 * frameDuration * bitDepth / 8 * channels;
 
     output.once('readable', () => {
@@ -91,7 +91,6 @@ Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
         const chunk = output.read(readSize);
 
         if (!chunk) {
-          console.log('no buffer chunk');
           setTimeout(needBuffer, frameDuration);
           return;
         }

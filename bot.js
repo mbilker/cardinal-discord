@@ -8,9 +8,9 @@ const Settings = require('./settings');
 const client = new Discordie();
 const oath = require('./hubot_oath.json');
 
-//bot.on('debug', (msg) => {
-//  debug(msg);
-//});
+// bot.on('debug', (msg) => {
+//   debug(msg);
+// });
 function shutdownCb(err) {
   console.log(err && err.stack);
 
@@ -20,10 +20,9 @@ function shutdownCb(err) {
     return process.exit(1);
   }
 }
-//bot.on('error', shutdownCb);
+// bot.on('error', shutdownCb);
 Dispatcher.on('ctrlc', shutdownCb);
 
-//bot.on('ready', () => setImmediate(() => Dispatcher.emit(Actions.DISCORD_READY, bot)));
 client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   console.log(`Connected as: ${client.User.username}`);
 
