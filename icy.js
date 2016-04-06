@@ -66,40 +66,42 @@ function discordPlayStream(output) {
 }
 
 Dispatcher.on(Actions.ICY_CONNECTED, (res) => {
-  const stream = new ReduceVolumeStream();
-  const output = res.pipe(new lame.Decoder()).pipe(stream);
+  const decode = res.pipe(new lame.Decoder());
+  const output = decode.pipe(new ReduceVolumeStream());
 
   function volumeListener(volume) {
     debug('setting stream volume to ' + volume);
-    stream.setVolume(volume / 100);
+    output.setVolume(volume / 100);
   };
   Dispatcher.on(Actions.SET_AUDIO_VOLUME, volumeListener);
 
-  const frameDuration = 20;
-  const bitDepth = 16;
-  const sampleRate = 48000;
-  const channels = 2;
+  decode.on('format', (format) => {
+    const frameDuration = 60;
+    const bitDepth = format.bitDepth;
+    const sampleRate = format.sampleRate;
+    const channels = format.channels;
 
-  const options = { frameDuration, sampleRate, channels, float: false };
+    const options = { frameDuration, sampleRate, channels, float: false };
+    const readSize = sampleRate / 1000 * frameDuration * bitDepth / 8 * channels;
 
-  const readSize = sampleRate / 1000 * frameDuration * bitDepth / 8 * channels;
-  output.once('readable', () => setTimeout(() => {
-    const encoder = voiceConnection.getEncoder(options)
-    const needBuffer = () => encoder.onNeedBuffer();
-    encoder.onNeedBuffer = function() {
-      const chunk = output.read(readSize);
+    output.once('readable', () => {
+      const encoder = voiceConnection.getEncoder(options)
+      const needBuffer = () => encoder.onNeedBuffer();
+      encoder.onNeedBuffer = function() {
+        const chunk = output.read(readSize);
 
-      if (!chunk) {
-        console.log('no buffer chunk');
-        setTimeout(needBuffer, options.frameDuration);
-        return;
-      }
+        if (!chunk) {
+          console.log('no buffer chunk');
+          setTimeout(needBuffer, frameDuration);
+          return;
+        }
 
-      const sampleCount = readSize / channels / (bitDepth / 8);
-      encoder.enqueue(chunk, sampleCount);
-    };
-    needBuffer();
-  }, Settings.STATUS_DELAY_TIME));
+        const sampleCount = readSize / channels / (bitDepth / 8);
+        encoder.enqueue(chunk, sampleCount);
+      };
+      needBuffer();
+    });
+  });
 
   output.on('error', (err) => {
     console.error(err);
