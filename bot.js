@@ -58,6 +58,7 @@ client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
 const helpText = `
 This is *Hubot*. A general purpose robot.
 
+\`\`\`
 Commands:
 - ping
   Simple ping and pong to see if bot is responding
@@ -65,11 +66,15 @@ Commands:
   Start playing music.
 - \`stop
   Stop playing music.
+- \`volume <0-100>
+  Set the volume of Hubot between 0% and 100%.
+\`\`\`
 `;
 
 client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
-  var content = e.message.content;
-  var c = content.toLowerCase();
+  const content = e.message.content;
+  const c = content.toLowerCase();
+  const args = content.split(' ').filter(x => x.length);
 
   if (c === 'ping') {
     e.message.channel.sendMessage('pong');
@@ -77,6 +82,14 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
   } else if (c === '`stop') {
     Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
+  } else if (args[0].toLowerCase() === '`volume' || args[0].toLowerCase() === '`vol') {
+    debug(`volume change: ${args}`);
+    if (args.length > 1) {
+      const num = parseInt(args[1]);
+      if (!isNaN(num)) {
+        Dispatcher.emit(Actions.SET_AUDIO_VOLUME, num);
+      }
+    }
   } else if (c === '`help') {
     e.message.channel.sendMessage(helpText);
   }

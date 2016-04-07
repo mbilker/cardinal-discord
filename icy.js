@@ -48,7 +48,11 @@ class IcyManager {
     }
 
     debug(`SET_AUDIO_VOLUME: setting stream volume to ${newVolume}`);
-    this.volumeTransformer.setVolume(newVolume / 100);
+
+    let volume = newVolume;
+    volume = Math.max(volume, 0);
+    volume = Math.min(volume, 100);
+    this.volumeTransformer.setVolume(volume / 100);
   }
 
   startPlayback(e) {
@@ -79,7 +83,7 @@ class IcyManager {
 
       icy.get(URL, (res) => {
         debug('received icy response', res.headers);
- 
+
         this.icyStream = res;
         this.onIcyConnected(e);
 
@@ -114,7 +118,7 @@ class IcyManager {
 
   updateGameStatus(name) {
     debug(`updating game playing text: ${name}`);
-    this.textChannel.sendMessage(name).then(() => console.log(`reported song status to ${Settings.TEXT_CHANNEL}`));
+    this.textChannel.sendMessage(name).then(() => debug(`reported song status to ${Settings.TEXT_CHANNEL}`));
     client.User.setGame({ name });
   }
 
