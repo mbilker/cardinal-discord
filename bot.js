@@ -72,6 +72,8 @@ Commands:
 `;
 
 client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
+  if (!e.message.content) return;
+
   const content = e.message.content;
   const c = content.toLowerCase();
   const args = content.split(' ').filter(x => x.length);
