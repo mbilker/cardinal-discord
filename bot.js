@@ -1,3 +1,5 @@
+"use strict";
+
 const debug = require('debug')('hubot-discord');
 const Discordie = require('discordie');
 
@@ -7,6 +9,8 @@ const Settings = require('./settings');
 
 const client = new Discordie();
 const oath = require('./hubot_oath.json');
+
+let guild = null;
 
 // bot.on('debug', (msg) => {
 //   debug(msg);
@@ -24,17 +28,17 @@ function shutdownCb(err) {
 Dispatcher.on('ctrlc', shutdownCb);
 
 client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
-  console.log(`Connected as: ${client.User.username}`);
+  debug(`Connected as: ${client.User.username}`);
 });
 
 client.Dispatcher.on(Discordie.Events.GUILD_CREATE, (e) => {
-  const guild = client.Guilds.getBy('name', Settings.SERVER_NAME);
+  guild = client.Guilds.getBy('name', Settings.SERVER_NAME);
 
   if (guild) {
-    console.log('Found correct server!');
+    debug('Found correct server!');
     Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
   } else {
-    console.log('Guild not found!');
+    debug('Guild not found!');
     shutdownCb();
   }
 });
@@ -44,20 +48,41 @@ client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
   const sdelay = Math.floor(delay / 100) / 10;
 
   if (e.error.message.indexOf('gateway') !== -1) {
-    console.log(`Disconnected from gw, resuming in ${sdelay} seconds`);
+    debug(`Disconnected from gw, resuming in ${sdelay} seconds`);
   } else {
-    console.log(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
+    debug(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
   }
   setTimeout(connect, delay);
 });
 
+const helpText = `
+This is *Hubot*. A general purpose robot.
+
+Commands:
+- ping
+  Simple ping and pong to see if bot is responding
+- \`play
+  Start playing music.
+- \`stop
+  Stop playing music.
+`;
+
 client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
-  if (e.message.content === 'ping') {
+  var content = e.message.content;
+  var c = content.toLowerCase();
+
+  if (c === 'ping') {
     e.message.channel.sendMessage('pong');
+  } else if (c === '`play') {
+    Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
+  } else if (c === '`stop') {
+    Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
+  } else if (c === '`help') {
+    e.message.channel.sendMessage(helpText);
   }
 });
 
-Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (guild) => {
+Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, () => {
   const textChannel = guild.textChannels.filter(c => c.name === Settings.TEXT_CHANNEL)[0];
   if (!textChannel) {
     Dispatcher.emit('error', new Error('Cannot find text channel'));
@@ -65,25 +90,34 @@ Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, (guild) => {
   }
   Dispatcher.emit(Actions.DISCORD_FOUND_TEXT_CHANNEL, textChannel);
 
-  const voiceChannel = guild.voiceChannels.filter(c => c.name === Settings.VOICE_CHANNEL)[0];
-  if (!voiceChannel) {
-    Dispatcher.emit('error', new Error('Cannot find voice channel'));
-    return;
-  }
-  Dispatcher.emit(Actions.DISCORD_FOUND_VOICE_CHANNEL, voiceChannel);
+  getVoiceChannel();
 });
 
+/*
 Dispatcher.on(Actions.DISCORD_FOUND_VOICE_CHANNEL, (voiceChannel) => {
   voiceChannel.join(false, false).then((info, err) => {
     debug('joined voice chat');
     Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL, info);
   });
 });
+*/
+
+function getVoiceChannel() {
+  const voiceChannel = guild.voiceChannels.filter(c => c.name === Settings.VOICE_CHANNEL)[0];
+  if (!voiceChannel) {
+    Dispatcher.emit('error', new Error('Cannot find voice channel'));
+    return null;
+  }
+  Dispatcher.emit(Actions.DISCORD_FOUND_VOICE_CHANNEL, voiceChannel);
+
+  return voiceChannel;
+};
 
 client.connect({
   token: oath.response.token
 });
 
 module.exports = {
-  client
+  client,
+  getVoiceChannel,
 };

@@ -7,6 +7,7 @@ const Actions = keyMirror({
   DISCORD_FOUND_VOICE_CHANNEL: null,
   DISCORD_JOINED_VOICE_CHANNEL: null,
 
+  START_MUSIC_PLAYBACK: null,
   ICY_CONNECTED: null,
   ICY_METADATA: null,
 
