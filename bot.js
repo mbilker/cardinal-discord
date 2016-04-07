@@ -68,6 +68,12 @@ Commands:
   Stop playing music.
 - \`volume <0-100>
   Set the volume of Hubot between 0% and 100%.
+- \`next
+  Play the next song in the playlist.
+  If the song is the last song in the playlist, then Hubot will wrap around to the beginning of the playlist.
+- \`prev
+  Play the previous song in the playlist.
+  If the song is the first song in the playlist, then Hubot will wrap around to the end of the playlist.
 \`\`\`
 `;
 
@@ -84,6 +90,10 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
   } else if (c === '`stop') {
     Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
+  } else if (c === '`next') {
+    Dispatcher.emit(Actions.NEXT_SONG, e);
+  } else if (c === '`previous' || c === '`prev') {
+    Dispatcher.emit(Actions.PREVIOUS_SONG, e);
   } else if (args[0].toLowerCase() === '`volume' || args[0].toLowerCase() === '`vol') {
     debug(`volume change: ${args}`);
     if (args.length > 1) {

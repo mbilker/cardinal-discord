@@ -12,6 +12,10 @@ const Actions = keyMirror({
   ICY_METADATA: null,
 
   SET_AUDIO_VOLUME: null,
+
+  PAUSE_SONG: null,
+  NEXT_SONG: null,
+  PREVIOUS_SONG: null,
 });
 
 module.exports = Actions;
