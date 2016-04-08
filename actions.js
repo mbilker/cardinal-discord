@@ -13,9 +13,12 @@ const Actions = keyMirror({
 
   SET_AUDIO_VOLUME: null,
 
-  PAUSE_SONG: null,
+  NOW_PLAYING_SONG: null,
   NEXT_SONG: null,
   PREVIOUS_SONG: null,
+  PAUSE_SONG: null,
+  RESUME_SONG: null,
+  PLAY_PLAYLIST_POSITION: null,
 });
 
 module.exports = Actions;
