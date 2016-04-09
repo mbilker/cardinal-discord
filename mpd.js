@@ -16,9 +16,57 @@ const PORT = 6600;
 function formatTime(seconds) {
   function zeroPad(n) {
     return n < 10 ? '0' + n : n;
-  }
+  };
   return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
+};
+
+const ONE_MINUTE = 60;
+const ONE_HOUR = ONE_MINUTE * 60;
+const ONE_DAY = ONE_HOUR * 24;
+const ONE_WEEK = ONE_DAY * 7;
+
+function reallyLongTime(seconds) {
+  const weeks = Math.floor(seconds / ONE_WEEK);
+  seconds -= weeks * ONE_WEEK;
+  const days = Math.floor(seconds / ONE_DAY);
+  seconds -= days * ONE_DAY;
+  const hours = Math.floor(seconds / ONE_HOUR);
+  seconds -= hours * ONE_HOUR;
+  const minutes = Math.floor(seconds / ONE_MINUTE);
+  seconds -= minutes * ONE_MINUTE;
+  const remainingSeconds = seconds % 60;
+
+  let finalText = '';
+  if (weeks !== 0) {
+    finalText += `${weeks}wk `;
+  }
+  if (days !== 0) {
+    finalText += `${days}d `;
+  }
+  if (hours !== 0) {
+    finalText += `${hours}h `;
+  }
+  if (minutes !== 0) {
+    finalText += `${minutes}m `;
+  }
+  if (seconds !== 0) {
+    finalText += `${seconds}s`;
+  }
+
+  if (finalText === '') {
+    // TODO: why would this ever happen?
+    finalText += 'how did we get zero?';
+  }
+
+  // return `${weeks}${weekText} ${days}${dayText} ${hours}${hourText} ${seconds}${secondsText}`;
+  return finalText;
 }
+
+function errorHandler(ev) {
+  return function(err) {
+    debug(`${ev} err`, err);
+  };
+};
 
 class MpdManager {
   constructor() {
@@ -33,6 +81,7 @@ class MpdManager {
     Dispatcher.on(Actions.PAUSE_SONG, this.pause.bind(this));
     Dispatcher.on(Actions.RESUME_SONG, this.play.bind(this));
     Dispatcher.on(Actions.PLAY_PLAYLIST_POSITION, this.playlistPos.bind(this));
+    Dispatcher.on(Actions.DISPLAY_PLAYLIST, this.displayPlaylist.bind(this));
   }
 
   sendCommand(command, args) {
@@ -55,7 +104,7 @@ class MpdManager {
       this.sendCommand('status', []),
     ];
 
-    return Promise.all(promises).then((values) => {
+    Promise.all(promises).then((values) => {
       debug('NOW_PLAYING_SONG cb');
       if (!values[0] || !values[0].length) {
         return e.message.channel.sendMessage('No current song');
@@ -79,36 +128,88 @@ class MpdManager {
       }
 
       e.message.channel.sendMessage(`Now Playing:\n[${id}] (${totalTime}) **${name}**\n[${currentTime} / ${totalTime}] (${remainingTime})`);
-    }).catch((err) => {
-      if (err) {
-        console.log(err.stack);
+    }).catch(errorHandler('NOW_PLAYING_SONG'));
+  }
+
+  displayPlaylist(e) {
+    debug('DISPLAY_PLAYLIST');
+    const promises = [
+      this.sendCommand('status', []),
+      this.sendCommand('playlistinfo', []),
+    ];
+
+    Promise.all(promises).then((values) => {
+      debug('DISPLAY_PLAYLIST cb');
+      if (!values[1] || !values[1].length) {
+        return e.message.channel.sendMessage('No playlist to display');
       }
-    });
+
+      const status = mpd.parseKeyValueMessage(values[0]);
+      const songs = mpd.parseArrayMessage(values[1]);
+
+      const currentIndex = parseInt(status.song) || 0;
+      const songsFiltered = songs.filter(x => x.Time);
+      const songSlice = songsFiltered.slice(currentIndex, currentIndex + 25);
+
+      let totalTime = songsFiltered.reduce((p, v) => { return p + (parseInt(v.Time) || 0) }, 0);
+      let msgToSend = songSlice.map((song) => {
+        let name = '';
+        if (song.Album && song.Title) {
+          name = `${song.Album} - ${song.Title}`;
+        } else {
+          name = path.basename(song.file);
+        }
+
+        return `[${song.Id}] (${formatTime(song.Time)}) **${name}**`;
+      }).join('\n');
+
+      msgToSend += '\n\n';
+      msgToSend += `Printed **${songSlice.length}** out of **${songsFiltered.length}**\n`;
+      msgToSend += `**${reallyLongTime(totalTime)}** worth of audio queued total`;
+
+      e.message.channel.sendMessage(msgToSend);
+    }).catch(errorHandler('DISPLAY_PLAYLIST'));
   }
 
   next(e) {
     debug('NEXT_SONG');
-    return this.sendCommand('next', []).then(() => this.getNowPlaying(e));
+    this.sendCommand('next', []).then(() => this.getNowPlaying(e));
   }
 
   previous(e) {
     debug('PREVIOUS_SONG');
-    return this.sendCommand('previous', []).then(() => this.getNowPlaying(e));
+    this.sendCommand('previous', []).then(() => this.getNowPlaying(e));
   }
 
   pause() {
     debug('PAUSE_SONG');
-    return this.sendCommand('pause', [1]);
+    this.sendCommand('pause', [1]).catch(errorHandler('PAUSE_SONG'));
   }
 
-  play() {
+  play(e) {
     debug('RESUME_SONG');
-    return this.sendCommand('pause', [0]);
+    this.sendCommand('pause', [0]).catch(errorHandler('RESUME_SONG'));
   }
 
-  playlistPos(pos) {
+  playlistPos(e, pos) {
     debug('PLAY_PLAYLIST_POSITION');
-    return this.sendCommand('play', [pos]);
+
+    let promise = null;
+
+    const posOperator = pos.toString()[0];
+    if (posOperator === '-' || posOperator === '+') {
+      promise = this.sendCommand('status', []).then((msg) => {
+        const stats = mpd.parseKeyValueMessage(msg);
+        return parseInt(pos) + parseInt(stats.song);
+      });
+    } else {
+      promise = Promise.resolve(pos);
+    }
+
+    const playPromise = promise.then((newPos) => this.sendCommand('play', [newPos]));
+    const logPromise = playPromise.then((res) => debug('PLAY_PLAYLIST_POSITION res', res));
+    const nowPlayingPromise = logPromise.then(() => this.getNowPlaying(e));
+    nowPlayingPromise.catch(errorHandler('PLAY_PLAYLIST_POSITION'));
   }
 };
 

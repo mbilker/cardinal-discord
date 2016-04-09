@@ -19,6 +19,7 @@ const Actions = keyMirror({
   PAUSE_SONG: null,
   RESUME_SONG: null,
   PLAY_PLAYLIST_POSITION: null,
+  DISPLAY_PLAYLIST: null,
 });
 
 module.exports = Actions;

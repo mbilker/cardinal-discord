@@ -1,5 +1,7 @@
 "use strict";
 
+const util = require('util');
+
 const debug = require('debug')('hubot-discord');
 const Discordie = require('discordie');
 
@@ -27,11 +29,13 @@ function shutdownCb(err) {
 // bot.on('error', shutdownCb);
 Dispatcher.on('ctrlc', shutdownCb);
 
+// });
+//
+// client.Dispatcher.on(Discordie.Events.GUILD_CREATE, (e) => {
+
 client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   debug(`Connected as: ${client.User.username}`);
-});
 
-client.Dispatcher.on(Discordie.Events.GUILD_CREATE, (e) => {
   guild = client.Guilds.getBy('name', Settings.SERVER_NAME);
 
   if (guild) {
@@ -52,7 +56,6 @@ client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
   } else {
     debug(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
   }
-  setTimeout(connect, delay);
 });
 
 const helpText = `
@@ -80,6 +83,8 @@ Commands:
   If the song is the first song in the playlist, then Hubot will wrap around to the end of the playlist.
 - \`np
   Displays information about the currently playing song.
+- \`li
+  Displays 25 entries from current playlist from the current song.
 \`\`\`
 `;
 
@@ -111,7 +116,7 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     if (args.length > 1) {
       const pos = parseInt(args[1]);
       if (!isNaN(pos)) {
-        Dispatcher.emit(Actions.PLAY_PLAYLIST_POSITION, pos);
+        Dispatcher.emit(Actions.PLAY_PLAYLIST_POSITION, e, args[1]);
       }
     }
   } else if (args[0].toLowerCase() === '`volume' || args[0].toLowerCase() === '`vol') {
@@ -124,8 +129,33 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     }
   } else if (c === '`help') {
     e.message.channel.sendMessage(helpText);
+  } else if (c === '`userinfo') {
+    e.message.channel.sendMessage(userInfo(e.message.author, e.message.guild));
+  } else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
+    let res = null;
+    const text = args.slice(1).join(' ');
+    try {
+      res = eval(text);
+      e.message.channel.sendMessage('Result:\n```javascript\n' + util.inspect(res) + '\n```');
+    } catch (err) {
+      e.message.channel.sendMessage('Something went wrong:\n```\n' + err.stack + '\n```');
+    }
+  } else if (args[0].toLowerCase() === '`li') {
+    Dispatcher.emit(Actions.DISPLAY_PLAYLIST, e);
   }
 });
+
+function userInfo(u, g) {
+  return `\`\`\`
+       ID: ${u.id} (disc: ${u.discriminator})
+ USERNAME: ${u.username}
+     GAME: ${u.game} (name: ${u.gameName})
+ CREATION: ${u.createdAt}
+
+    PERMS:
+${JSON.stringify(u.permissionsFor(g), null, 2)}
+\`\`\``;
+}
 
 Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, () => {
   const textChannel = guild.textChannels.filter(c => c.name === Settings.TEXT_CHANNEL)[0];
