@@ -7,7 +7,7 @@ const dispatcher = new EventEmitter();
 // dispatcher.emit = function emit(ev) {
 //   debug.apply(null, arguments);
 //   return _emit.apply(dispatcher, arguments);
-// }
+// };
 
 process.on('SIGINT', function() {
   dispatcher.emit('ctrlc');
