@@ -63,12 +63,12 @@ This is *Hubot*. A general purpose robot.
 
 \`\`\`
 Commands:
-- ping
+- ping|pong
   Simple ping and pong to see if bot is responding
-- \`music
-  Start playing music.
-- \`stop
-  Stop playing music.
+- \`summon
+  Join voice channel.
+- \`leave
+  Leave voice channel.
 - \`volume <0-100>
   Set the volume of Hubot between 0% and 100%.
 - \`play
@@ -91,15 +91,22 @@ Commands:
 client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   if (!e.message.content) return;
 
-  const content = e.message.content;
+  const m = e.message;
+  const content = m.content;
   const c = content.toLowerCase();
   const args = content.split(' ').filter(x => x.length);
 
-  if (c === 'ping') {
+  if (c === 'ping' && m.author.id !== client.User.id) {
     e.message.channel.sendMessage('pong');
-  } else if (c === '`music') {
+  } else if (c === 'pong' && m.author.id !== client.User.id) {
+    e.message.channel.sendMessage('ping');
+  } else if (c === '`help') {
+    e.message.channel.sendMessage(helpText);
+  } else if (c === '`userinfo') {
+    e.message.channel.sendMessage(userInfo(e.message.author, e.message.guild));
+  } else if (c === '`summon') {
     Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
-  } else if (c === '`stop') {
+  } else if (c === '`leave') {
     Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
   } else if (c === '`np') {
     Dispatcher.emit(Actions.NOW_PLAYING_SONG, e);
@@ -111,6 +118,12 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.PAUSE_SONG, e);
   } else if (c === '`play' || c === '`resume') {
     Dispatcher.emit(Actions.RESUME_SONG, e);
+  } else if (c === '`li') {
+    Dispatcher.emit(Actions.DISPLAY_PLAYLIST, e);
+  } else if (c === '`qnp') {
+    Dispatcher.emit(Actions.DISPLAY_NOW_PLAYING, m);
+  } else if (args[0].toLowerCase() === '`queue') {
+    Dispatcher.emit(Actions.QUEUE_ITEM, m, args[1]);
   } else if (args[0].toLowerCase() === '`pos') {
     Dispatcher.emit(Actions.PLAY_PLAYLIST_POSITION, e, args[1]);
   } else if (args[0].toLowerCase() === '`volume' || args[0].toLowerCase() === '`vol') {
@@ -121,21 +134,8 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
         Dispatcher.emit(Actions.SET_AUDIO_VOLUME, num);
       }
     }
-  } else if (c === '`help') {
-    e.message.channel.sendMessage(helpText);
-  } else if (c === '`userinfo') {
-    e.message.channel.sendMessage(userInfo(e.message.author, e.message.guild));
   } else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
-    let res = null;
-    const text = args.slice(1).join(' ');
-    try {
-      res = eval(text);
-      e.message.channel.sendMessage('Result:\n```javascript\n' + util.inspect(res) + '\n```');
-    } catch (err) {
-      e.message.channel.sendMessage('Something went wrong:\n```\n' + err.stack + '\n```');
-    }
-  } else if (args[0].toLowerCase() === '`li') {
-    Dispatcher.emit(Actions.DISPLAY_PLAYLIST, e);
+    executeJS(m, args);
   }
 });
 
@@ -149,6 +149,17 @@ function userInfo(u, g) {
     PERMS:
 ${JSON.stringify(u.permissionsFor(g), null, 2)}
 \`\`\``;
+};
+
+function executeJS(m, args) {
+  let res = null;
+  const text = args.slice(1).join(' ');
+  try {
+    res = eval(text);
+    m.channel.sendMessage('Result:\n```javascript\n' + util.inspect(res) + '\n```');
+  } catch (err) {
+    m.channel.sendMessage('Something went wrong:\n```\n' + err.stack + '\n```');
+  }
 }
 
 Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, () => {
