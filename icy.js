@@ -19,7 +19,6 @@ const URL = 'http://127.0.0.1:8000';
 
 class IcyManager {
   constructor() {
-    this.textChannel = null;
     this.voiceChannel = null;
     this.voiceConnection = null;
     this.icyStream = null;
@@ -30,15 +29,9 @@ class IcyManager {
     this.encoder = null;
     this.volumeTransformer = null;
 
-    Dispatcher.on(Actions.DISCORD_FOUND_TEXT_CHANNEL, this.onFoundTextChannel.bind(this));
     Dispatcher.on(Actions.SET_AUDIO_VOLUME, this.onSetVolume.bind(this));
     Dispatcher.on(Actions.START_MUSIC_PLAYBACK, this.startPlayback.bind(this));
     Dispatcher.on(Actions.STOP_MUSIC_PLAYBACK, this.stopPlayback.bind(this));
-  }
-
-  onFoundTextChannel(newTextChannel) {
-    debug('DISCORD_FOUND_TEXT_CHANNEL', newTextChannel.id);
-    this.textChannel = newTextChannel;
   }
 
   onSetVolume(newVolume) {
@@ -118,14 +111,11 @@ class IcyManager {
 
   updateGameStatus(name) {
     debug(`updating game playing text: ${name}`);
-    this.textChannel.sendMessage(name).then(() => debug(`reported song status to ${Settings.TEXT_CHANNEL}`));
     client.User.setGame({ name });
   }
 
   onIcyConnected(e) {
     if (!client.VoiceConnections.length) {
-      this.textChannel.sendMessage('No voice conenction for sending audio');
-
       if (e && e.message && e.message.channel) {
         e.message.channel.sendMessage('No voice connection for sending audio');
       }
