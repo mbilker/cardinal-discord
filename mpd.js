@@ -141,7 +141,8 @@ class MpdManager {
     Promise.all(promises).then((values) => {
       debug('DISPLAY_PLAYLIST cb');
       if (!values[1] || !values[1].length) {
-        return e.message.channel.sendMessage('No playlist to display');
+        e.message.channel.sendMessage('No playlist to display');
+        return;
       }
 
       const status = mpd.parseKeyValueMessage(values[0]);
@@ -193,6 +194,11 @@ class MpdManager {
 
   playlistPos(e, pos) {
     debug('PLAY_PLAYLIST_POSITION');
+
+    if (!pos || isNaN(pos)) {
+      e.message.channel.sendMessage('Not a valid playlist position');
+      return;
+    }
 
     let promise = null;
 
