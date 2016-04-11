@@ -112,13 +112,7 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   } else if (c === '`play' || c === '`resume') {
     Dispatcher.emit(Actions.RESUME_SONG, e);
   } else if (args[0].toLowerCase() === '`pos') {
-    debug(`set playlist postion: ${args}`);
-    if (args.length > 1) {
-      const pos = parseInt(args[1]);
-      if (!isNaN(pos)) {
-        Dispatcher.emit(Actions.PLAY_PLAYLIST_POSITION, e, args[1]);
-      }
-    }
+    Dispatcher.emit(Actions.PLAY_PLAYLIST_POSITION, e, args[1]);
   } else if (args[0].toLowerCase() === '`volume' || args[0].toLowerCase() === '`vol') {
     debug(`volume change: ${args}`);
     if (args.length > 1) {
