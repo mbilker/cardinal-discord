@@ -26,6 +26,7 @@
     "lodash": "^4.5.0",
     "mpd": "^1.3.0",
     "node-opus": "^0.1.12",
+    "webm-byte-stream": "^0.1.4",
     "ytdl-core": "^0.7.13"
   }
 }
