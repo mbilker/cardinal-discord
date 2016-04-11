@@ -1,8 +1,9 @@
 const debug = require('debug');
 
-debug.enable('hubot*');
+debug.enable('hubot*,cardinal*');
 
 require('./icy.js');
 require('./mpd.js');
+require('./queue.js');
 require('./web.js');
 require('./bot.js');
