@@ -110,7 +110,6 @@ class QueuedMedia {
 
     if (this.format.audioEncoding === 'opus') {
       const encoder = voiceConnection.getEncoder({ proxy: true });
-      const webmStream = new WebMByteStream({ durations: true });
 
       req.on('response', (res) => {
         debug(`have response: ${res.statusCode}`);
@@ -119,24 +118,15 @@ class QueuedMedia {
           return;
         }
 
-        webm.on('Media Segment', (data) => {
+        const encoder = voiceConnection.createExternalEncoder({
+          type: 'WebmOpusPlayer',
+          source: res
         });
 
-        const frameTime = 48000 * frameDuration;
-        function sendPacket() {
-          const chunk = res.read(readSize);
+        encoder.once('end', () => debug('stream end', this.url, this.encoding));
+        encoder.once('unpipe', () => debug('strem unpipe', this.url, this.encoding));
 
-          if (!chunk) {
-            debug('no chunk');
-            return setTimeout(sendPacket, frameDuration);
-          }
-
-          const sampleCount = getSampleCountInPacket(chunk);
-          debug(`sending samples: ${sampleCount}`);
-          encoder.enqueue(chunk, sampleCount);
-          setTimeout(sendPacket, frameDuration);
-        };
-        sendPacket();
+        const stream = encoder.play();
       });
     }
   }
