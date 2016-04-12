@@ -70,21 +70,21 @@ class QueuedMedia {
       this.format = this.formats[0];
       this.encoding = this.format.audioEncoding;
       this.url = this.format.url;
-    } else {
+    } else if (this.type === Types.LOCAL) {
       this.format = info.format;
       this.encoding = info.encoding;
       this.url = info.filePath;
+    } else {
+      throw new Error(`unknown type: ${this.type}`);
     }
 
     this.play = this.play.bind(this);
     this.printString = this.printString.bind(this);
-
-    debug('format', this.format);
   }
 
   play(voiceConnection) {
     if (this.type === Types.YTDL) {
-      return this.playYTDL(voiceConnection);
+      return this.playHTTPS(voiceConnection);
     }
   }
 
@@ -102,49 +102,63 @@ class QueuedMedia {
       encoder.once('end', () => debug('stream end', this.url, this.encoding));
       encoder.once('unpipe', () => readStream.destroy());
 
-      const stream = encoder.play();
+      this.stream = encoder.play();
     }
   }
 
-  playYTDL(voiceConnection) {
-    debug(`playYTDL: ${this.id} ${this.encoding}`);
+  playHTTPS(voiceConnection) {
+    debug(`playHTTPS: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.format.url);
     parsed.rejectUnauthorized = false;
 
     const req = https.get(parsed);
 
-    if (this.format.audioEncoding === 'opus') {
-      req.on('response', (res) => {
-        debug(`have response: ${res.statusCode}`);
-        if (res.statusCode !== 200) {
-          debug(`error playing ${this.id}: status code ${res.statusCode}`);
-          return;
-        }
+    req.on('response', (res) => {
+      debug(`have response: ${res.statusCode}`);
 
-        const encoder = voiceConnection.createExternalEncoder({
+      if (res.statusCode !== 200) {
+        debug(`error playing ${this.id}: status code ${res.statusCode}`);
+        this.donePlaying();
+        return;
+      }
+
+      if (this.encoding === 'opus') {
+        this.encoder = voiceConnection.createExternalEncoder({
           type: 'WebmOpusPlayer',
           source: res,
         });
+      } else {
+        debug('audio is not opus, using ffmpeg');
 
-        encoder.once('end', () => {
-          debug('stream end', this.id, this.encoding);
-          Dispatcher.emit(Actions.QUEUE_DONE_ITEM, this);
+        this.encoder = voiceConnection.createExternalEncoder({
+          source: res,
         });
-        encoder.once('unpipe', () => debug('strem unpipe', this.id, this.encoding));
+      }
 
-        this.stream = encoder.play();
+      this.encoder.once('end', () => {
+        debug('stream end', this.id, this.encoding);
+        this.donePlaying();
       });
-      req.on('error', (err) => {
-        debug('request error', this.id, err);
-      });
-    }
+      this.encoder.once('unpipe', () => debug('strem unpipe', this.id, this.encoding));
+
+      this.stream = this.encoder.play();
+    });
+
+    req.on('error', (err) => {
+      debug('request error', this.id, err);
+      this.donePlaying();
+    });
   }
 
   stopPlaying() {
     if (this.stream) {
       this.stream.end();
     }
+  }
+
+  donePlaying() {
+    Dispatcher.emit(Actions.QUEUE_DONE_ITEM, this);
   }
 
   printString() {
