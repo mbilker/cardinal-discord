@@ -2,7 +2,7 @@
 
 const util = require('util');
 
-const debug = require('debug')('hubot-discord');
+const debug = require('debug')('cardinal:discord');
 const Discordie = require('discordie');
 
 const Actions = require('./actions');
@@ -26,12 +26,13 @@ function shutdownCb(err) {
     return process.exit(1);
   }
 }
-// bot.on('error', shutdownCb);
 Dispatcher.on('ctrlc', shutdownCb);
 
-// });
-//
-// client.Dispatcher.on(Discordie.Events.GUILD_CREATE, (e) => {
+function start() {
+  client.connect({
+    token: oath.response.token
+  });
+}
 
 client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   debug(`Connected as: ${client.User.username}`);
@@ -56,6 +57,7 @@ client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
   } else {
     debug(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
   }
+  setTimeout(connect, delay);
 });
 
 const helpText = `
@@ -121,7 +123,9 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   } else if (c === '`li') {
     Dispatcher.emit(Actions.DISPLAY_PLAYLIST, e);
   } else if (c === '`qnp') {
-    Dispatcher.emit(Actions.DISPLAY_NOW_PLAYING, m);
+    Dispatcher.emit(Actions.QUEUE_DISPLAY_NOW_PLAYING, m);
+  } else if (c == '`qli') {
+    Dispatcher.emit(Actions.QUEUE_DISPLAY_PLAYLIST, m);
   } else if (args[0].toLowerCase() === '`queue') {
     Dispatcher.emit(Actions.QUEUE_ITEM, m, args[1]);
   } else if (args[0].toLowerCase() === '`pos') {
@@ -152,8 +156,13 @@ ${JSON.stringify(u.permissionsFor(g), null, 2)}
 };
 
 function executeJS(m, args) {
+  debug('EXECUTE_JS', args);
+
   let res = null;
   const text = args.slice(1).join(' ');
+
+  debug('EXECUTE_JS 2', text);
+
   try {
     res = eval(text);
     m.channel.sendMessage('Result:\n```javascript\n' + util.inspect(res) + '\n```');
@@ -192,12 +201,6 @@ function getVoiceChannel() {
 
   return voiceChannel;
 };
-
-function start() {
-  client.connect({
-    token: oath.response.token
-  });
-}
 
 module.exports = {
   client,
