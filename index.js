@@ -6,4 +6,6 @@ require('./icy.js');
 require('./mpd.js');
 require('./queue.js');
 require('./web.js');
-require('./bot.js');
+
+const bot = require('./bot.js');
+bot.start();

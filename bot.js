@@ -193,11 +193,14 @@ function getVoiceChannel() {
   return voiceChannel;
 };
 
-client.connect({
-  token: oath.response.token
-});
+function start() {
+  client.connect({
+    token: oath.response.token
+  });
+}
 
 module.exports = {
   client,
   getVoiceChannel,
+  start,
 };
