@@ -18,7 +18,7 @@
   "homepage": "https://github.com/mbilker/music-discord#readme",
   "dependencies": {
     "debug": "^2.2.0",
-    "discordie": "git+https://github.com/qeled/discordie.git#dev",
+    "discordie": "git+https://github.com/qeled/discordie.git",
     "express": "^4.13.4",
     "icy": "^2.1.0",
     "keymirror": "^0.1.1",
