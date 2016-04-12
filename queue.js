@@ -5,7 +5,6 @@ const url = require('url');
 
 const debug = require('debug')('cardinal-queue');
 const keyMirror = require('keymirror');
-const WebMByteStream = require('webm-byte-stream');
 const ytdl = require('ytdl-core');
 
 const Actions = require('./actions');
