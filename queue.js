@@ -5,6 +5,7 @@ const url = require('url');
 
 const debug = require('debug')('cardinal-queue');
 const keyMirror = require('keymirror');
+const WebMByteStream = require('webm-byte-stream');
 const ytdl = require('ytdl-core');
 
 const Actions = require('./actions');
@@ -49,42 +50,27 @@ function formatTime(seconds) {
   return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
 };
 
-function getSampleCountInPacket(data, sampleRate) {
-  sampleRate = sampleRate || 48000;
-
-  // src/opus_decode.c
-  let audiosize;
-  if (data[0] & 0x80) {
-    audiosize = ((data[0] >> 3) & 0x3);
-    audiosize = (sampleRate << audiosize) / 400;
-  } else if ((data[0] & 0x60) == 0x60) {
-    audiosize = (data[0] & 0x08) ? sampleRate / 50 : sampleRate / 100;
-  } else {
-    audiosize = ((data[0] >> 3) & 0x3);
-    if (audiosize == 3) {
-      audiosize = sampleRate * 60 / 1000;
-    } else {
-      audiosize = (sampleRate << audiosize) / 100;
-    }
-  }
-  return audiosize;
-}
 
 class QueuedMedia {
   constructor(type, id, info, formats) {
     this.type = type;
     this.ownerId = id;
-    this.info = info || null;
-    this.formats = formats || null;
+    this.info = info;
+    this.formats = formats;
     this.title = '';
     this.url = '';
 
-    if (this.info) {
-      this.title = info.title;
+    this.title = info.title;
+
+    if (this.type === Types.YTDL) {
       this.lengthSeconds = info.length_seconds;
       this.format = this.formats[0];
       this.encoding = this.format.audioEncoding;
       this.url = this.format.url;
+    } else {
+      this.format = info.format;
+      this.encoding = info.encoding;
+      this.url = info.filePath;
     }
 
     this.play = this.play.bind(this);
@@ -98,6 +84,24 @@ class QueuedMedia {
     }
   }
 
+  playLocal(voiceConnection) {
+    debug(`playLocal: ${this.url} ${this.encoding}`);
+
+    const readStream = require('fs').createReadStream(this.url);
+
+    if (this.format.audioEncoding === 'opus') {
+      const encoder = voiceConnection.createExternalEncoder({
+        type: 'WebmOpusPlayer',
+        source: readStream
+      });
+
+      encoder.once('end', () => debug('stream end', this.url, this.encoding));
+      encoder.once('unpipe', () => readStream.destroy());
+
+      const stream = encoder.play();
+    }
+  }
+
   playYTDL(voiceConnection) {
     debug(`playYTDL: ${this.format.url} ${this.format.audioEncoding}`);
 
@@ -107,7 +111,7 @@ class QueuedMedia {
 
     if (this.format.audioEncoding === 'opus') {
       const encoder = voiceConnection.getEncoder({ proxy: true });
-      const webmStream = new WebMByteStream();
+      const webmStream = new WebMByteStream({ durations: true });
 
       req.on('response', (res) => {
         debug(`have response: ${res.statusCode}`);
@@ -142,7 +146,7 @@ class QueuedMedia {
     if (this.type === Types.YTDL) {
       return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.info.video_id}) (<${this.ownerId}>)`;
     }
-    return 'hello ' + this.type;
+    return `NON-YTDL \`[${this.encoding}]\` **${this.title}** - ${this.url}`;
   }
 }
 
@@ -150,6 +154,8 @@ class MusicPlayer {
   constructor() {
     this.queue = new Set();
     this.currentlyPlaying = null;
+
+    this.QueuedMedia = QueuedMedia;
 
     Dispatcher.on(Actions.DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
     Dispatcher.on(Actions.QUEUE_ITEM, this.queueItem.bind(this));
