@@ -58,11 +58,15 @@ class QueuedMedia {
     this.formats = formats;
     this.title = '';
     this.url = '';
+    this.id = '';
+
+    this.stream = null;
 
     this.title = info.title;
 
     if (this.type === Types.YTDL) {
       this.lengthSeconds = info.length_seconds;
+      this.id = info.video_id;
       this.format = this.formats[0];
       this.encoding = this.format.audioEncoding;
       this.url = this.format.url;
@@ -74,11 +78,12 @@ class QueuedMedia {
 
     this.play = this.play.bind(this);
     this.printString = this.printString.bind(this);
+
     debug('format', this.format);
   }
 
   play(voiceConnection) {
-    if (this.type === Types.YTDL && false) {
+    if (this.type === Types.YTDL) {
       return this.playYTDL(voiceConnection);
     }
   }
@@ -91,7 +96,7 @@ class QueuedMedia {
     if (this.format.audioEncoding === 'opus') {
       const encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
-        source: readStream
+        source: readStream,
       });
 
       encoder.once('end', () => debug('stream end', this.url, this.encoding));
@@ -102,38 +107,49 @@ class QueuedMedia {
   }
 
   playYTDL(voiceConnection) {
-    debug(`playYTDL: ${this.format.url} ${this.format.audioEncoding}`);
+    debug(`playYTDL: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.format.url);
+    parsed.rejectUnauthorized = false;
+
     const req = https.get(parsed);
-    const frameDuration = 60;
 
     if (this.format.audioEncoding === 'opus') {
-      const encoder = voiceConnection.getEncoder({ proxy: true });
-
       req.on('response', (res) => {
         debug(`have response: ${res.statusCode}`);
         if (res.statusCode !== 200) {
-          debug(`error playing ${this.format.url}: status code ${res.statusCode}`);
+          debug(`error playing ${this.id}: status code ${res.statusCode}`);
           return;
         }
 
         const encoder = voiceConnection.createExternalEncoder({
           type: 'WebmOpusPlayer',
-          source: res
+          source: res,
         });
 
-        encoder.once('end', () => debug('stream end', this.url, this.encoding));
-        encoder.once('unpipe', () => debug('strem unpipe', this.url, this.encoding));
+        encoder.once('end', () => {
+          debug('stream end', this.id, this.encoding);
+          Dispatcher.emit(Actions.QUEUE_DONE_ITEM, this);
+        });
+        encoder.once('unpipe', () => debug('strem unpipe', this.id, this.encoding));
 
-        const stream = encoder.play();
+        this.stream = encoder.play();
       });
+      req.on('error', (err) => {
+        debug('request error', this.id, err);
+      });
+    }
+  }
+
+  stopPlaying() {
+    if (this.stream) {
+      this.stream.end();
     }
   }
 
   printString() {
     if (this.type === Types.YTDL) {
-      return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.info.video_id}) (<${this.ownerId}>)`;
+      return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<${this.ownerId}>)`;
     }
     return `NON-YTDL \`[${this.encoding}]\` **${this.title}** - ${this.url}`;
   }
@@ -146,12 +162,14 @@ class MusicPlayer {
 
     this.QueuedMedia = QueuedMedia;
 
-    Dispatcher.on(Actions.DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
+    Dispatcher.on(Actions.QUEUE_DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
+    Dispatcher.on(Actions.QUEUE_DISPLAY_PLAYLIST, this.onDisplayPlaylist.bind(this));
     Dispatcher.on(Actions.QUEUE_ITEM, this.queueItem.bind(this));
+    Dispatcher.on(Actions.QUEUE_DONE_ITEM, this.queuedDonePlaying.bind(this));
   }
 
   onNowPlaying(m) {
-    debug('DISPLAY_NOW_PLAYING');
+    debug('QUEUE_DISPLAY_NOW_PLAYING');
     if (this.currentlyPlaying === null) {
       m.channel.sendMessage('No queued song');
       return;
@@ -159,9 +177,36 @@ class MusicPlayer {
     m.channel.sendMessage(this.currentlyPlaying.printString());
   }
 
+  onDisplayPlaylist(m) {
+    debug('QUEUE_DISPLAY_PLAYLIST');
+    let msg = '';
+
+    msg += 'Playlist:\n';
+    for (const item of this.queue) {
+      msg += `${item.printString()}\n`;
+    }
+
+    if (!this.queue.size) {
+      msg += '- Nothing!\n';
+    }
+
+    if (this.currentlyPlaying) {
+      msg += '\n';
+      msg += 'Currently Playing:\n';
+      msg += this.currentlyPlaying.printString();
+    }
+
+    m.channel.sendMessage(msg);
+  }
+
   queueItem(m, url) {
     debug('QUEUE_ITEM');
     ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
+      if (err) {
+        debug('error pulling youtube data', err.stack);
+        return;
+      }
+
       const formats = info.formats
         .filter(x => x.audioEncoding)
         .sort(sortFormats);
@@ -181,7 +226,7 @@ class MusicPlayer {
 
       const voiceChannel = getVoiceChannel();
       voiceChannel.join(false, false).then((info, err) => {
-        debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err);
+        debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
 
         if (err) {
           Dispatcher.emit('error', err);
