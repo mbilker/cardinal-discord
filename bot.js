@@ -158,6 +158,10 @@ ${JSON.stringify(u.permissionsFor(g), null, 2)}
 function executeJS(m, args) {
   debug('EXECUTE_JS', args);
 
+  const prefix = 'Result:\n```javascript\n';
+  const suffix = '\n```';
+  const noSpace = 'This response is too long. Shortening to ~2000 characters:\n```javascript';
+
   let res = null;
   const text = args.slice(1).join(' ');
 
@@ -165,9 +169,20 @@ function executeJS(m, args) {
 
   try {
     res = eval(text);
-    m.channel.sendMessage('Result:\n```javascript\n' + util.inspect(res) + '\n```');
+    debug('EXECUTE_JS res', res);
+
+    const inspect = util.inspect(res);
+    let string = `${prefix}${inspect}${suffix}`;
+    debug('EXECUTE_JS length', string.length);
+    if (string.length > 2000) { // max length of message is 2000 characters
+      const stringTwo = `${prefix}${inspect.substring(0, 2000 - prefix.length - suffix.length - 3)}...${suffix}`;
+      m.channel.sendMessage(stringTwo);
+    } else {
+      m.channel.sendMessage(string);
+    }
   } catch (err) {
-    m.channel.sendMessage('Something went wrong:\n```\n' + err.stack + '\n```');
+    const errMsg = err && err.stack || 'no error message';
+    m.channel.sendMessage('Something went wrong:\n```\n' + errMsg + '\n```');
   }
 }
 
