@@ -1,0 +1,27 @@
+{
+  "extends": "airbnb",
+  "parser": "babel-eslint",
+  "globals": {
+    "NylasEnv": false
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "jasmine": true
+  },
+  "rules": {
+    "no-console": [1],
+    "react/sort-comp": [1, {
+      "order": [
+        'displayName',
+        'containerStyles',
+        'defaultState',
+        'static-methods',
+        'state',
+        'lifecycle',
+        'everything-else',
+        'render'
+      ]
+    }]
+  }
+}
