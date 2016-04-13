@@ -132,8 +132,12 @@ class QueuedMedia {
         debug('audio is not opus, using ffmpeg');
 
         this.encoder = voiceConnection.createExternalEncoder({
-          source: res,
+          type: 'ffmpeg',
+          source: '-',
+          format: 'opus',
         });
+
+        res.pipe(this.encoder.stdin);
       }
 
       this.encoder.once('end', () => {
