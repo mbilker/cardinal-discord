@@ -57,7 +57,7 @@ client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
   } else {
     debug(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
   }
-  setTimeout(connect, delay);
+  setTimeout(start, delay);
 });
 
 const helpText = `
