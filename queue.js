@@ -177,6 +177,7 @@ class MusicPlayer {
   constructor() {
     this.queue = new Set();
     this.currentlyPlaying = null;
+    this.voiceChannel = null;
 
     this.QueuedMedia = QueuedMedia;
 
@@ -242,8 +243,8 @@ class MusicPlayer {
       this.currentlyPlaying = next;
       this.queue.delete(next);
 
-      const voiceChannel = getVoiceChannel();
-      voiceChannel.join(false, false).then((info, err) => {
+      this.voiceChannel = getVoiceChannel();
+      this.voiceChannel.join(false, false).then((info, err) => {
         debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
 
         if (err) {
@@ -253,6 +254,12 @@ class MusicPlayer {
 
         this.currentlyPlaying.play(info.voiceConnection);
       });
+    } else if (this.currentlyPlaying && this.queue.size === 0 && this.voiceChannel) {
+      const info = this.voiceChannel.getVoiceConnectionInfo();
+      if (info && info.voiceConnection && !info.voiceConnection.disposed) {
+        info.voiceConnection.disconnect();
+        this.voiceChannel = null;
+      }
     }
   }
 
