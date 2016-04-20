@@ -22,9 +22,10 @@ const Actions = keyMirror({
   DISPLAY_PLAYLIST: null,
 
   QUEUE_DISPLAY_NOW_PLAYING: null,
-  QUEUE_ITEM: null,
-  QUEUE_DONE_ITEM: null,
   QUEUE_DISPLAY_PLAYLIST: null,
+  QUEUE_ITEM: null,
+  QUEUE_SKIP: null,
+  QUEUE_DONE_ITEM: null,
 });
 
 module.exports = Actions;

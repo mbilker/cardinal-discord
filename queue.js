@@ -54,8 +54,6 @@ class QueuedMedia {
   constructor(type, id, info, formats) {
     this.type = type;
     this.ownerId = id;
-    this.info = info;
-    this.formats = formats;
     this.title = '';
     this.url = '';
     this.id = '';
@@ -67,9 +65,10 @@ class QueuedMedia {
     if (this.type === Types.YTDL) {
       this.lengthSeconds = info.length_seconds;
       this.id = info.video_id;
-      this.format = this.formats[0];
-      this.encoding = this.format.audioEncoding;
-      this.url = this.format.url;
+
+      const format = formats[0];
+      this.encoding = format.audioEncoding;
+      this.url = format.url;
     } else if (this.type === Types.LOCAL) {
       this.format = info.format;
       this.encoding = info.encoding;
@@ -93,7 +92,7 @@ class QueuedMedia {
 
     const readStream = require('fs').createReadStream(this.url);
 
-    if (this.format.audioEncoding === 'opus') {
+    if (this.encoding === 'opus') {
       const encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: readStream,
@@ -109,7 +108,7 @@ class QueuedMedia {
   playHTTPS(voiceConnection) {
     debug(`playHTTPS: ${this.id} ${this.encoding}`);
 
-    const parsed = url.parse(this.format.url);
+    const parsed = url.parse(this.url);
     parsed.rejectUnauthorized = false;
 
     const req = https.get(parsed);
@@ -167,7 +166,7 @@ class QueuedMedia {
 
   printString() {
     if (this.type === Types.YTDL) {
-      return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<${this.ownerId}>)`;
+      return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<@${this.ownerId}>)`;
     }
     return `NON-YTDL \`[${this.encoding}]\` **${this.title}** - ${this.url}`;
   }
@@ -177,13 +176,14 @@ class MusicPlayer {
   constructor() {
     this.queue = new Set();
     this.currentlyPlaying = null;
-    this.voiceChannel = null;
+    this.voiceSocket = null;
 
     this.QueuedMedia = QueuedMedia;
 
     Dispatcher.on(Actions.QUEUE_DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
     Dispatcher.on(Actions.QUEUE_DISPLAY_PLAYLIST, this.onDisplayPlaylist.bind(this));
     Dispatcher.on(Actions.QUEUE_ITEM, this.queueItem.bind(this));
+    Dispatcher.on(Actions.QUEUE_SKIP, this.skipSong.bind(this));
     Dispatcher.on(Actions.QUEUE_DONE_ITEM, this.queuedDonePlaying.bind(this));
   }
 
@@ -236,24 +236,44 @@ class MusicPlayer {
     });
   }
 
+  skipSong(m) {
+    if (!this.currentlyPlaying) {
+      m.sendMessage('No currently playing song');
+      return;
+    } else if (!this.currentlyPlaying.stream) {
+      m.sendMessage('For some reason this song does not have a stream associated with it');
+      return;
+    }
+
+    this.currentlyPlaying.stream.unpipeAll();
+    this.currentlyPlaying = null;
+    this.handleQueued();
+  }
+
   handleQueued() {
     debug('handleQueued');
+
     if (this.currentlyPlaying === null && this.queue.size > 0) {
       const next = Array.from(this.queue)[0];
       this.currentlyPlaying = next;
       this.queue.delete(next);
 
-      this.voiceChannel = getVoiceChannel();
-      this.voiceChannel.join(false, false).then((info, err) => {
-        debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
+      if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
+        this.currentlyPlaying.play(this.voiceConnection);
+      } else {
+        getVoiceChannel().join(false, false).then((info, err) => {
+          debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
 
-        if (err) {
-          Dispatcher.emit('error', err);
-          return;
-        }
+          this.voiceConnection = info.voiceConnection;
 
-        this.currentlyPlaying.play(info.voiceConnection);
-      });
+          if (err) {
+            Dispatcher.emit('error', err);
+            return;
+          }
+
+          this.currentlyPlaying.play(this.voiceConnection);
+        });
+      }
     } else if (this.currentlyPlaying && this.queue.size === 0 && this.voiceChannel) {
       const info = this.voiceChannel.getVoiceConnectionInfo();
       if (info && info.voiceConnection && !info.voiceConnection.disposed) {
