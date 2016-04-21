@@ -84,6 +84,8 @@ class QueuedMedia {
   play(voiceConnection) {
     if (this.type === Types.YTDL) {
       return this.playHTTPS(voiceConnection);
+    } else if (this.type === Types.LOCAL) {
+      return this.playLocal(voiceConnection);
     }
   }
 
@@ -93,16 +95,27 @@ class QueuedMedia {
     const readStream = require('fs').createReadStream(this.url);
 
     if (this.encoding === 'opus') {
-      const encoder = voiceConnection.createExternalEncoder({
+      this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: readStream,
       });
-
-      encoder.once('end', () => debug('stream end', this.url, this.encoding));
-      encoder.once('unpipe', () => readStream.destroy());
-
-      this.stream = encoder.play();
+    } else {
+      this.encoder = voiceConnection.createExternalEncoder({
+        type: 'ffmpeg',
+        source: '-',
+        format: 'opus',
+      });
     }
+
+    readStream.pipe(this.encoder.stdin);
+
+    this.encoder.once('end', () => {
+      debug('stream end', this.url, this.encoding);
+      this.donePlaying();
+    });
+    this.encoder.once('unpipe', () => readStream.destroy());
+
+    this.stream = this.encoder.play();
   }
 
   playHTTPS(voiceConnection) {
@@ -116,7 +129,11 @@ class QueuedMedia {
     req.on('response', (res) => {
       debug(`have response: ${res.statusCode}`);
 
-      if (res.statusCode !== 200) {
+      if (res.statusCode === 302) {
+        debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
+        setImmediate(() => this.playHTTPS(voiceConnection));
+        return;
+      } else if (res.statusCode !== 200) {
         debug(`error playing ${this.id}: status code ${res.statusCode}`);
         this.donePlaying();
         return;
@@ -176,7 +193,7 @@ class MusicPlayer {
   constructor() {
     this.queue = new Set();
     this.currentlyPlaying = null;
-    this.voiceSocket = null;
+    this.voiceConnection = null;
 
     this.QueuedMedia = QueuedMedia;
 
@@ -238,10 +255,10 @@ class MusicPlayer {
 
   skipSong(m) {
     if (!this.currentlyPlaying) {
-      m.sendMessage('No currently playing song');
+      m.channel.sendMessage('No currently playing song');
       return;
     } else if (!this.currentlyPlaying.stream) {
-      m.sendMessage('For some reason this song does not have a stream associated with it');
+      m.channel.sendMessage('For some reason this song does not have a stream associated with it');
       return;
     }
 
