@@ -51,7 +51,8 @@ function formatTime(seconds) {
 
 
 class QueuedMedia {
-  constructor(type, id, info, formats) {
+  constructor(musicPlayer, type, id, info, formats) {
+    this.musicPlayer = musicPlayer;
     this.type = type;
     this.ownerId = id;
     this.title = '';
@@ -118,7 +119,7 @@ class QueuedMedia {
     this.stream = this.encoder.play();
   }
 
-  playHTTPS(voiceConnection) {
+  playHTTPS(voiceConnection, retry) {
     debug(`playHTTPS: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.url);
@@ -129,9 +130,21 @@ class QueuedMedia {
     req.on('response', (res) => {
       debug(`have response: ${res.statusCode}`);
 
-      if (res.statusCode === 302) {
+      if (res.statusCode === 302 && this.type === YTDL && retry) {
+        debug(`damn youtube 302`);
+        this.musicPlayer.fetchYoutubeInfo(`http://www.youtube.com/watch?v=${this.video_id}`).then((info, formats) => {
+          this.lengthSeconds = info.length_seconds;
+          this.id = info.video_id;
+
+          const format = formats[0];
+          this.encoding = format.audioEncoding;
+          this.url = format.url;
+
+          this.playHTTPS(voiceConnection);
+        });
+      } else if (res.statusCode === 302) {
         debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
-        setImmediate(() => this.playHTTPS(voiceConnection));
+        setTimeout(() => this.playHTTPS(voiceConnection, true), 1000);
         return;
       } else if (res.statusCode !== 200) {
         debug(`error playing ${this.id}: status code ${res.statusCode}`);
@@ -235,21 +248,38 @@ class MusicPlayer {
     m.channel.sendMessage(msg);
   }
 
+  fetchYoutubeInfo(url) {
+    return new Promise((resolve, reject) => {
+      ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const formats = info.formats.filter(x => x.audioEncoding).sort(sortFormats);
+        resolve([info, formats]);
+      });
+    });
+  }
+
   queueItem(m, url) {
-    debug('QUEUE_ITEM');
-    ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
-      if (err) {
-        debug('error pulling youtube data', err.stack);
-        return;
-      }
+    debug('QUEUE_ITEM', url);
+    if (!url) {
+      debug('no valid url');
+      m.channel.sendMessage(`${m.author.mention} Please give me a URL to play`);
+      return;
+    }
 
-      const formats = info.formats
-        .filter(x => x.audioEncoding)
-        .sort(sortFormats);
+    this.fetchYoutubeInfo(url).then((arr) => {
+      debug('fetchYoutubeInfo promise resolve');
 
-      const queued = new QueuedMedia(Types.YTDL, m.author.id, info, formats);
+      const queued = new QueuedMedia(this, Types.YTDL, m.author.id, ...arr);
       this.queue.add(queued);
       this.handleQueued();
+    }).catch((err) => {
+      if (err) {
+        debug('error pulling youtube data', err.stack);
+      }
     });
   }
 
