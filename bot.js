@@ -103,7 +103,7 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_NOW_PLAYING, m);
   } else if (c === '`li') {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_PLAYLIST, m);
-  } else if (c === '`next') {
+  } else if (e.message.author.id === '142098955818369024' && c === '`next') {
     Dispatcher.emit(Actions.QUEUE_SKIP, m);
   } else if (args[0].toLowerCase() === '`queue') {
     Dispatcher.emit(Actions.QUEUE_ITEM, m, args[1]);
