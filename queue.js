@@ -82,6 +82,16 @@ class QueuedMedia {
     this.printString = this.printString.bind(this);
   }
 
+  hookEncoderEvents() {
+    this.encoder.once('end', () => {
+      debug('stream end', this.id || this.url, this.encoding);
+      this.donePlaying();
+    });
+    this.encoder.once('unpipe', () => {
+      debug('strem unpipe', this.id || this.url, this.encoding);
+    });
+  }
+
   play(voiceConnection) {
     if (this.type === Types.YTDL) {
       return this.playHTTPS(voiceConnection);
@@ -110,17 +120,14 @@ class QueuedMedia {
 
     readStream.pipe(this.encoder.stdin);
 
-    this.encoder.once('end', () => {
-      debug('stream end', this.url, this.encoding);
-      this.donePlaying();
-    });
+    this.hookEncoderEvents();
     this.encoder.once('unpipe', () => readStream.destroy());
 
     this.stream = this.encoder.play();
   }
 
-  playHTTPS(voiceConnection, retry) {
-    debug(`playHTTPS: ${this.id} ${this.encoding}`);
+  playOpusHTTPS(voiceConnection, retry) {
+    debug(`playOpusHTTPS: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.url);
     parsed.rejectUnauthorized = false;
@@ -130,21 +137,21 @@ class QueuedMedia {
     req.on('response', (res) => {
       debug(`have response: ${res.statusCode}`);
 
-      if (res.statusCode === 302 && this.type === YTDL && retry) {
+      if (res.statusCode === 302 && this.type === Types.YTDL && retry) {
         debug(`damn youtube 302`);
-        this.musicPlayer.fetchYoutubeInfo(`http://www.youtube.com/watch?v=${this.video_id}`).then((info, formats) => {
-          this.lengthSeconds = info.length_seconds;
-          this.id = info.video_id;
+        this.musicPlayer.fetchYoutubeInfo(`http://www.youtube.com/watch?v=${this.video_id}`).then((arr) => {
+          this.lengthSeconds = arr[0].length_seconds;
+          this.id = arr[0].video_id;
 
-          const format = formats[0];
+          const format = arr[1][0];
           this.encoding = format.audioEncoding;
           this.url = format.url;
 
-          this.playHTTPS(voiceConnection);
+          this.playOpusHTTPS(voiceConnection);
         });
       } else if (res.statusCode === 302) {
         debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
-        setTimeout(() => this.playHTTPS(voiceConnection, true), 1000);
+        setTimeout(() => this.playOpusHTTPS(voiceConnection, true), 1000);
         return;
       } else if (res.statusCode !== 200) {
         debug(`error playing ${this.id}: status code ${res.statusCode}`);
@@ -152,28 +159,12 @@ class QueuedMedia {
         return;
       }
 
-      if (this.encoding === 'opus') {
-        this.encoder = voiceConnection.createExternalEncoder({
-          type: 'WebmOpusPlayer',
-          source: res,
-        });
-      } else {
-        debug('audio is not opus, using ffmpeg');
-
-        this.encoder = voiceConnection.createExternalEncoder({
-          type: 'ffmpeg',
-          source: '-',
-          format: 'opus',
-        });
-
-        res.pipe(this.encoder.stdin);
-      }
-
-      this.encoder.once('end', () => {
-        debug('stream end', this.id, this.encoding);
-        this.donePlaying();
+      this.encoder = voiceConnection.createExternalEncoder({
+        type: 'WebmOpusPlayer',
+        source: res,
       });
-      this.encoder.once('unpipe', () => debug('strem unpipe', this.id, this.encoding));
+
+      this.hookEncoderEvents();
 
       this.stream = this.encoder.play();
     });
@@ -182,6 +173,25 @@ class QueuedMedia {
       debug('request error', this.id, err);
       this.donePlaying();
     });
+  }
+
+  playHTTPS(voiceConnection, retry) {
+    if (this.encoding === 'opus') {
+      this.playOpusHTTPS(voiceConnection);
+    } else {
+      debug(`playHTTPS: ${this.id} ${this.encoding}`);
+      debug('audio is not opus, using ffmpeg');
+
+      this.encoder = voiceConnection.createExternalEncoder({
+        type: 'ffmpeg',
+        source: this.url,
+        format: 'opus',
+      });
+
+      this.hookEncoderEvents();
+
+      this.stream = this.encoder.play();
+    }
   }
 
   stopPlaying() {
@@ -274,6 +284,8 @@ class MusicPlayer {
       debug('fetchYoutubeInfo promise resolve');
 
       const queued = new QueuedMedia(this, Types.YTDL, m.author.id, ...arr);
+      m.channel.sendMessage(`Added ${queued.printString()}`);
+
       this.queue.add(queued);
       this.handleQueued();
     }).catch((err) => {
