@@ -287,7 +287,7 @@ class MusicPlayer {
       m.channel.sendMessage(`Added ${queued.printString()}`);
 
       this.queue.add(queued);
-      this.handleQueued();
+      this.handleQueued(m.guild, m.author);
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
@@ -309,8 +309,10 @@ class MusicPlayer {
     this.handleQueued();
   }
 
-  handleQueued() {
+  handleQueued(guild, author) {
     debug('handleQueued');
+
+    const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
 
     if (this.currentlyPlaying === null && this.queue.size > 0) {
       const next = Array.from(this.queue)[0];
@@ -320,7 +322,9 @@ class MusicPlayer {
       if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
         this.currentlyPlaying.play(this.voiceConnection);
       } else {
-        getVoiceChannel().join(false, false).then((info, err) => {
+        const voiceChannel = authorVoiceChannel || getVoiceChannel();
+
+        voiceChannel.join(false, false).then((info, err) => {
           debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
 
           this.voiceConnection = info.voiceConnection;
@@ -333,12 +337,11 @@ class MusicPlayer {
           this.currentlyPlaying.play(this.voiceConnection);
         });
       }
-    } else if (this.currentlyPlaying && this.queue.size === 0 && this.voiceChannel) {
-      const info = this.voiceChannel.getVoiceConnectionInfo();
-      if (info && info.voiceConnection && !info.voiceConnection.disposed) {
-        info.voiceConnection.disconnect();
-        this.voiceChannel = null;
-      }
+    } else if (this.queue.size === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
+      debug('handleQueued disconnect');
+
+      this.voiceConnection.disconnect();
+      this.voiceConnection = null;
     }
   }
 
