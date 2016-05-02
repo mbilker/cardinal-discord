@@ -69,7 +69,15 @@ class MusicPlayer {
 
         const formats = info.formats
           .filter(x => x.audioEncoding)
-          .sort(Utils.sortFormats);
+          .sort(Utils.sortFormats)
+          .map(x => (
+            {
+              container: x.container,
+              url: x.url,
+              audioEncoding: x.audioEncoding,
+              audioBitrate: x.audioBitrate,
+            }
+          ));
 
         resolve([info, formats]);
       });
