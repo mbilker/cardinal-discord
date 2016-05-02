@@ -4,7 +4,6 @@ const https = require('https');
 const url = require('url');
 
 const debug = require('debug')('cardinal:queued-media');
-const ytdl = require('ytdl-core');
 
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
