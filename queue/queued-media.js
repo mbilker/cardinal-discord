@@ -5,11 +5,11 @@ const url = require('url');
 
 const debug = require('debug')('cardinal:queued-media');
 
-const Actions = require('./actions');
-const Dispatcher = require('./dispatcher');
+const Actions = require('../actions');
+const Dispatcher = require('../dispatcher');
 
-const Types = require('./queue/types');
-const Utils = require('./queue/utils');
+const Types = require('./types');
+const Utils = require('./utils');
 
 class QueuedMedia {
   constructor(musicPlayer, type, id, info, formats) {
