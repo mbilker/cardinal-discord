@@ -12,22 +12,25 @@ const Types = require('./types');
 const Utils = require('./utils');
 
 class QueuedMedia {
-  constructor(musicPlayer, type, id, info, formats) {
+  constructor(musicPlayer, type, ownerId, info, formats) {
     this.musicPlayer = musicPlayer;
     this.type = type;
-    this.ownerId = id;
+    this.ownerId = ownerId;
 
+    this.id = '';
     this.title = info.title || '';
     this.url = '';
-    this.id = '';
+    this.duration = 0;
     this.stream = null;
     this.time = null;
 
     if (this.type === Types.YTDL) {
-      this.lengthSeconds = info.length_seconds;
       this.id = info.video_id;
+      this.duration = info.length_seconds;
+      this.formats = formats;
+      this.formatIndex = 0;
 
-      const format = formats[0];
+      const format = this.formats[this.formatIndex];
       this.encoding = format.audioEncoding;
       this.url = format.url;
     } else if (this.type === Types.LOCAL) {
@@ -107,19 +110,18 @@ class QueuedMedia {
     req.on('response', (res) => {
       debug(`have response: ${res.statusCode}`);
 
-      if (res.statusCode === 302 && this.type === Types.YTDL && retry) {
+      if (res.statusCode === 302 && this.type === Types.YTDL && (this.formatIndex + 1) !== this.formats.length) {
         debug(`damn youtube 302`);
-        this.musicPlayer.fetchYoutubeInfo(`http://www.youtube.com/watch?v=${this.video_id}`).then((arr) => {
-          this.lengthSeconds = arr[0].length_seconds;
-          this.id = arr[0].video_id;
 
-          const format = arr[1][0];
-          this.encoding = format.audioEncoding;
-          this.url = format.url;
+        this.formatIndex++;
 
-          this.playOpusHTTPS(voiceConnection);
-        });
-      } else if (res.statusCode === 302) {
+        const format = this.formats[this.formatIndex];
+        this.encoding = format.audioEncoding;
+        this.url = format.url;
+
+        this.playOpusHTTPS(voiceConnection);
+        return;
+      } else if (res.statusCode === 302 && !retry) {
         debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
         setTimeout(() => this.playOpusHTTPS(voiceConnection, true), 1000);
         return;
@@ -176,7 +178,7 @@ class QueuedMedia {
     const time = this.time ? (Utils.formatTime(this.time | 0) + '/') : '';
 
     if (this.type === Types.YTDL) {
-      const length = Utils.formatTime(this.lengthSeconds);
+      const length = Utils.formatTime(this.duration);
 
       return `(${time}${length}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<@${this.ownerId}>)`;
     }
