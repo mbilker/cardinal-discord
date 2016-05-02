@@ -60,6 +60,7 @@ class QueuedMedia {
     this.id = '';
 
     this.stream = null;
+    this.time = null;
 
     this.title = info.title;
 
@@ -89,6 +90,14 @@ class QueuedMedia {
     });
     this.encoder.once('unpipe', () => {
       debug('strem unpipe', this.id || this.url, this.encoding);
+    });
+  }
+
+  hookTimestampEvents() {
+    this.stream.resetTimestamp();
+    this.stream.removeAllListeners('timestamp');
+    this.stream.on('timestamp', (time) => {
+      this.time = time;
     });
   }
 
@@ -122,8 +131,8 @@ class QueuedMedia {
 
     this.hookEncoderEvents();
     this.encoder.once('unpipe', () => readStream.destroy());
-
     this.stream = this.encoder.play();
+    this.hookTimestampEvents();
   }
 
   playOpusHTTPS(voiceConnection, retry) {
@@ -165,8 +174,8 @@ class QueuedMedia {
       });
 
       this.hookEncoderEvents();
-
       this.stream = this.encoder.play();
+      this.hookTimestampEvents();
     });
 
     req.on('error', (err) => {
@@ -189,8 +198,8 @@ class QueuedMedia {
       });
 
       this.hookEncoderEvents();
-
       this.stream = this.encoder.play();
+      this.hookTimestampEvents();
     }
   }
 
@@ -205,8 +214,10 @@ class QueuedMedia {
   }
 
   printString() {
+    const time = this.time ? (formatTime(this.time | 0) + '/') : '';
+
     if (this.type === Types.YTDL) {
-      return `(${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<@${this.ownerId}>)`;
+      return `(${time}${formatTime(this.lengthSeconds)}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<@${this.ownerId}>)`;
     }
     return `NON-YTDL \`[${this.encoding}]\` **${this.title}** - ${this.url}`;
   }
