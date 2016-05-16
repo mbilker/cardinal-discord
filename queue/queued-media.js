@@ -74,6 +74,24 @@ class QueuedMedia {
     }
   }
 
+  playHTTPS(voiceConnection, retry) {
+    if (this.encoding === 'opus') {
+      this.playOpusHTTPS(voiceConnection);
+    } else {
+      debug(`playHTTPS: ${this.id} ${this.encoding}`);
+      debug('audio is not opus, using ffmpeg');
+
+      this.encoder = voiceConnection.createExternalEncoder({
+        type: 'ffmpeg',
+        source: this.url,
+        format: 'opus',
+      });
+
+      this.hookEncoderEvents();
+      this.hookPlayEvents();
+    }
+  }
+
   playLocal(voiceConnection) {
     debug(`playLocal: ${this.url} ${this.encoding}`);
 
@@ -119,7 +137,7 @@ class QueuedMedia {
         this.encoding = format.audioEncoding;
         this.url = format.url;
 
-        this.playOpusHTTPS(voiceConnection);
+        this.play(voiceConnection);
         return;
       } else if (res.statusCode === 302 && !retry) {
         debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
@@ -144,24 +162,6 @@ class QueuedMedia {
       debug('request error', this.id, err);
       this.donePlaying();
     });
-  }
-
-  playHTTPS(voiceConnection, retry) {
-    if (this.encoding === 'opus') {
-      this.playOpusHTTPS(voiceConnection);
-    } else {
-      debug(`playHTTPS: ${this.id} ${this.encoding}`);
-      debug('audio is not opus, using ffmpeg');
-
-      this.encoder = voiceConnection.createExternalEncoder({
-        type: 'ffmpeg',
-        source: this.url,
-        format: 'opus',
-      });
-
-      this.hookEncoderEvents();
-      this.hookPlayEvents();
-    }
   }
 
   stopPlaying() {
