@@ -107,6 +107,7 @@ class QueuedMedia {
         type: 'ffmpeg',
         source: '-',
         format: 'opus',
+        debug: true,
       });
     }
 
