@@ -1,9 +1,10 @@
 "use strict";
 
-const https = require('https');
+//const https = require('https');
 const url = require('url');
 
 const debug = require('debug')('cardinal:queued-media');
+const https = require('follow-redirects').https;
 
 const Actions = require('../actions');
 const Dispatcher = require('../dispatcher');
@@ -48,11 +49,14 @@ class QueuedMedia {
 
   hookEncoderEvents() {
     this.encoder.once('end', () => {
-      debug('stream end', this.id || this.url, this.encoding);
+      debug('encoder end', this.id || this.url, this.encoding);
       this.donePlaying();
     });
     this.encoder.once('unpipe', () => {
-      debug('strem unpipe', this.id || this.url, this.encoding);
+      debug('encoder unpipe', this.id || this.url, this.encoding);
+    });
+    this.encoder.once('error', (err) => {
+      debug('encoder error', this.id || this.url, this.encoding, err);
     });
   }
 
@@ -63,6 +67,9 @@ class QueuedMedia {
     this.stream.removeAllListeners('timestamp');
     this.stream.on('timestamp', (time) => {
       this.time = time;
+    });
+    this.stream.once('unpipe', () => {
+      debug('stream unpipe', this.id || this.url, this.encoding);
     });
   }
 
@@ -85,6 +92,8 @@ class QueuedMedia {
         type: 'ffmpeg',
         source: this.url,
         format: 'opus',
+        outputArgs: ['-ab', '64000'],
+        debug: true,
       });
 
       this.hookEncoderEvents();
@@ -114,19 +123,19 @@ class QueuedMedia {
     readStream.pipe(this.encoder.stdin);
 
     this.hookEncoderEvents();
-    this.encoder.once('unpipe', () => readStream.destroy());
     this.hookPlayEvents();
+    this.stream.once('unpipe', () => readStream.destroy());
   }
 
   playOpusHTTPS(voiceConnection, retry) {
     debug(`playOpusHTTPS: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.url);
-    parsed.rejectUnauthorized = false;
+    //parsed.rejectUnauthorized = false;
 
     const req = https.get(parsed);
 
-    req.on('response', (res) => {
+    req.once('response', (res) => {
       debug(`have response: ${res.statusCode}`);
 
       if (res.statusCode === 302 && this.type === Types.YTDL && (this.formatIndex + 1) !== this.formats.length) {
@@ -153,10 +162,13 @@ class QueuedMedia {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: res,
+        multiThreadedVoice: true,
+        debug: true,
       });
 
       this.hookEncoderEvents();
       this.hookPlayEvents();
+      this.stream.once('unpipe', () => res.destroy());
     });
 
     req.on('error', (err) => {
@@ -166,12 +178,23 @@ class QueuedMedia {
   }
 
   stopPlaying() {
+    debug('stopPlaying', this.id || this.url, this.encoding);
+
     if (this.stream) {
       this.stream.unpipeAll();
+      this.stream = null;
+    }
+
+    if (this.encoder) {
+      this.encoder.stop();
+      this.encoder.destroy();
+      this.encoder = null;
     }
   }
 
   donePlaying() {
+    debug('donePlaying', this.id || this.url, this.encoding);
+    this.stopPlaying();
     Dispatcher.emit(Actions.QUEUE_DONE_ITEM, this);
   }
 
