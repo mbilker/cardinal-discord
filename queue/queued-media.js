@@ -66,6 +66,7 @@ class QueuedMedia {
     this.stream.resetTimestamp();
     this.stream.removeAllListeners('timestamp');
     this.stream.on('timestamp', (time) => {
+      // debug('stream timestamp', this.id || this.url, this.encoding, time);
       this.time = time;
     });
     this.stream.once('unpipe', () => {
@@ -104,27 +105,22 @@ class QueuedMedia {
   playLocal(voiceConnection) {
     debug(`playLocal: ${this.url} ${this.encoding}`);
 
-    const readStream = require('fs').createReadStream(this.url);
-
     if (this.encoding === 'opus') {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
-        source: readStream,
+        source: this.url,
       });
     } else {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
-        source: '-',
+        source: this.url,
         format: 'opus',
         debug: true,
       });
     }
 
-    readStream.pipe(this.encoder.stdin);
-
     this.hookEncoderEvents();
     this.hookPlayEvents();
-    this.stream.once('unpipe', () => readStream.destroy());
   }
 
   playOpusHTTPS(voiceConnection, retry) {
@@ -162,7 +158,6 @@ class QueuedMedia {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: res,
-        multiThreadedVoice: true,
         debug: true,
       });
 

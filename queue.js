@@ -147,6 +147,9 @@ class MusicPlayer {
           }
 
           this.currentlyPlaying.play(this.voiceConnection);
+        }).catch((err) => {
+          debug('failed to join voice chat', err);
+          console.log(err, err.stack);
         });
       }
     } else if (this.queue.size === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
