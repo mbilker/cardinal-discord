@@ -13,7 +13,6 @@ const Settings = require('./settings');
 
 const bot = require('./bot');
 const client = bot.client;
-const getVoiceChannel = bot.getVoiceChannel;
 
 const URL = 'http://127.0.0.1:8000';
 
@@ -56,7 +55,7 @@ class IcyManager {
       return;
     }
 
-    const voiceChannel = getVoiceChannel();
+    const voiceChannel = e.author.getVoiceChannel(e.guild);
     if (!voiceChannel) {
       e.message.channel.sendMessage('Unable to find appropriate voice channel');
       return;

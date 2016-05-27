@@ -99,7 +99,7 @@ class MusicPlayer {
       m.channel.sendMessage(`Added ${queued.printString()}`);
 
       this.queue.add(queued);
-      this.handleQueued(m.guild, m.author);
+      this.handleQueued(m.guild, m.author, m.channel);
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
@@ -121,10 +121,14 @@ class MusicPlayer {
     this.handleQueued();
   }
 
-  handleQueued(guild, author) {
+  handleQueued(guild, author, channel) {
     debug('handleQueued');
 
     const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
+    if (!authorVoiceChannel && channel) {
+      channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
+      return;
+    }
 
     if (this.currentlyPlaying === null && this.queue.size > 0) {
       const next = Array.from(this.queue)[0];
@@ -134,9 +138,7 @@ class MusicPlayer {
       if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
         this.currentlyPlaying.play(this.voiceConnection);
       } else {
-        const voiceChannel = authorVoiceChannel || bot.getVoiceChannel();
-
-        voiceChannel.join(false, false).then((info, err) => {
+        authorVoiceChannel.join(false, false).then((info, err) => {
           debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
 
           this.voiceConnection = info.voiceConnection;

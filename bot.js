@@ -155,32 +155,7 @@ function executeJS(m, args) {
   }
 }
 
-Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, () => {
-  getVoiceChannel();
-});
-
-/*
-Dispatcher.on(Actions.DISCORD_FOUND_VOICE_CHANNEL, (voiceChannel) => {
-  voiceChannel.join(false, false).then((info, err) => {
-    debug('joined voice chat');
-    Dispatcher.emit(Actions.DISCORD_JOINED_VOICE_CHANNEL, info);
-  });
-});
-*/
-
-function getVoiceChannel() {
-  const voiceChannel = guild.voiceChannels.filter(c => c.name === Settings.VOICE_CHANNEL)[0];
-  if (!voiceChannel) {
-    Dispatcher.emit('error', new Error('Cannot find voice channel'));
-    return null;
-  }
-  Dispatcher.emit(Actions.DISCORD_FOUND_VOICE_CHANNEL, voiceChannel);
-
-  return voiceChannel;
-};
-
 module.exports = {
   client,
-  getVoiceChannel,
   start,
 };
