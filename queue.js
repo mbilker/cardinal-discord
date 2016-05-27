@@ -96,10 +96,12 @@ class MusicPlayer {
       debug('fetchYoutubeInfo promise resolve');
 
       const queued = new QueuedMedia(this, Types.YTDL, m.author.id, ...arr);
-      m.channel.sendMessage(`Added ${queued.printString()}`);
-
       this.queue.add(queued);
-      this.handleQueued(m.guild, m.author, m.channel);
+      this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
+        if (ok) {
+          m.channel.sendMessage(`Added ${queued.printString()}`);
+        }
+      });
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
@@ -125,33 +127,40 @@ class MusicPlayer {
     debug('handleQueued');
 
     const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
-    if (!authorVoiceChannel && channel) {
-      channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
-      return;
-    }
 
     if (this.currentlyPlaying === null && this.queue.size > 0) {
       const next = Array.from(this.queue)[0];
       this.currentlyPlaying = next;
       this.queue.delete(next);
 
-      if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
+      if (!authorVoiceChannel && channel) {
+        channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
+
+        this.queuedDonePlaying(this.currentlyPlaying);
+
+        return Promise.resolve(false);
+      } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
         this.currentlyPlaying.play(this.voiceConnection);
       } else {
-        authorVoiceChannel.join(false, false).then((info, err) => {
-          debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`, err || 'no error');
+        return authorVoiceChannel.join(false, false).then((info) => {
+          debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
 
           this.voiceConnection = info.voiceConnection;
 
-          if (err) {
-            Dispatcher.emit('error', err);
-            return;
-          }
-
           this.currentlyPlaying.play(this.voiceConnection);
+
+          return true;
         }).catch((err) => {
           debug('failed to join voice chat', err);
           console.log(err, err.stack);
+
+          if (err.message === 'Missing permission' && authorVoiceChannel) {
+            channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
+          }
+
+          this.queuedDonePlaying(this.currentlyPlaying);
+
+          return false;
         });
       }
     } else if (this.queue.size === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
@@ -160,6 +169,8 @@ class MusicPlayer {
       this.voiceConnection.disconnect();
       this.voiceConnection = null;
     }
+
+    return Promise.resolve(true);
   }
 
   queuedDonePlaying(queued) {
