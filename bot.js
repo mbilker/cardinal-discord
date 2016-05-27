@@ -156,13 +156,6 @@ function executeJS(m, args) {
 }
 
 Dispatcher.on(Actions.DISCORD_FOUND_CORRECT_SERVER, () => {
-  const textChannel = guild.textChannels.filter(c => c.name === Settings.TEXT_CHANNEL)[0];
-  if (!textChannel) {
-    Dispatcher.emit('error', new Error('Cannot find text channel'));
-    return;
-  }
-  Dispatcher.emit(Actions.DISCORD_FOUND_TEXT_CHANNEL, textChannel);
-
   getVoiceChannel();
 });
 

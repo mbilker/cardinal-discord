@@ -1,6 +1,5 @@
 module.exports = Object.freeze({
   SERVER_NAME: 'Obsidian Bears',
-  TEXT_CHANNEL: 'hubot-songlist',
   VOICE_CHANNEL: 'Cardinal Booth',
 
   STATUS_DELAY_TIME: 3000,
