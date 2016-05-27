@@ -69,6 +69,9 @@ class QueuedMedia {
       // debug('stream timestamp', this.id || this.url, this.encoding, time);
       this.time = time;
     });
+    this.stream.once('end', () => {
+      debug('stream end', this.id || this.url, this.encoding);
+    });
     this.stream.once('unpipe', () => {
       debug('stream unpipe', this.id || this.url, this.encoding);
     });
