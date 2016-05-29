@@ -48,6 +48,43 @@ client.Dispatcher.on(Discordie.Events.GATEWAY_READY, (e) => {
   }
 });
 
+function reconnect(channel) {
+  var channelName = channel.name;
+  channel.join()
+  .then(info => onConnected(info))
+  .catch(err => console.log("Failed to connect to " + channelName));
+  // this example will stop reconnecting after 1 attempt
+  // you can continue trying to reconnect
+}
+
+client.Dispatcher.on(Discordie.Events.VOICE_DISCONNECTED, (e) => {
+  debug('Disconnected from voice server', e.error);
+
+  if (e.endpointAwait) {
+    // handle reconnect instantly if it's a server-switch disconnect
+    // transparently creates same promise as `oldChannel.join()`
+    // see the `reconnect` function below
+
+    // Note: During Discord outages it will act like the official client
+    //       and wait for an endpoint. Sometimes this can take a very
+    //       long time. To cancel pending reconnect just call leave on
+    //       the voice channel. Pending promise will reject with
+    //       `Error` message "Cancelled".
+
+
+    e.endpointAwait.catch((err) => {
+      // server switching failed, do a regular backoff
+      setTimeout(() => reconnect(channel), 5000);
+    });
+    return;
+  }
+
+  // normal disconnect
+  if (!e.manual) {
+    setTimeout(() => reconnect(channel), 5000);
+  }
+});
+
 client.Dispatcher.on(Discordie.Events.DISCONNECTED, (e) => {
   const delay = 5000;
   const sdelay = Math.floor(delay / 100) / 10;
@@ -111,6 +148,20 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     executeJS(m, args);
   }
 });
+
+/*
+client.Dispatcher.onAny((type, args) => {
+  console.log("\nevent "+type);
+
+  if (args.type == "READY" || args.type == "READY" ||
+      type == "GATEWAY_READY" || type == "ANY_GATEWAY_READY" ||
+      type == "GATEWAY_DISPATCH") {
+    return console.log("e " + (args.type || type));
+  }
+
+  console.log("args " + JSON.stringify(args));
+});
+*/
 
 function userInfo(u, g) {
   return `\`\`\`
