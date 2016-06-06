@@ -1,0 +1,69 @@
+"use strict";
+
+const https = require('https');
+const url = require('url');
+
+const debug = require('debug')('cardinal:nicehash');
+
+const Actions = require('./actions');
+const Dispatcher = require('./dispatcher');
+const Settings = require('./settings');
+
+class Nicehash {
+  constructor() {
+    Dispatcher.on(Actions.NICEHASH_DISPLAY, this.display.bind(this));
+  }
+
+  display(m) {
+    debug('NICEHASH_DISPLAY');
+
+    const reqUrl = `https://www.nicehash.com/api?method=stats.provider&location=1&addr=${Settings.NICEHASH_ADDRESS}`;
+    const parsed = url.parse(reqUrl);
+    const req = https.get(parsed);
+
+    req.once('response', (res) => {
+      debug(`have response: ${res.statusCode}`);
+
+      let chunks = [];
+
+      if (res.statusCode !== 200) {
+        debug('bailing out, non-200 status code');
+        m.reply('Error code for response');
+        return;
+      }
+
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.once('end', () => {
+        const text = Buffer.concat(chunks).toString();
+        let data = null;
+
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          debug('error decoding json', e);
+          m.reply('Error decoding JSON payload');
+          return;
+        }
+
+        if (!data.result.stats.length) {
+          m.reply(`No data found for ${Settings.NICEHASH_ADDRESS}`);
+          return;
+        }
+
+        const stats = data.result.stats;
+        const speed = stats.reduce(((total, stats) => total + parseFloat(stats.accepted_speed) * 1000), 0);
+        const balance = stats.reduce(((total, stats) => total + parseFloat(stats.balance)), 0);
+
+        m.channel.sendMessage(`:pick: ${Settings.NICEHASH_ADDRESS}
+:zap: ${speed} MH/s
+:moneybag: ${balance} BTC`);
+        for (let i = 0; i <= 2; i++) {
+          const payment = data.result.payments[i];
+          m.channel.sendMessage(`${i} _${payment.time}_\t :id: ${payment.TXID.slice(0, 10)}\t :money_with_wings: ${payment.amount}\t :arrow_down: ${payment.fee}`);
+        }
+      });
+    });
+  }
+}
+
+module.exports = new Nicehash();

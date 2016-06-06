@@ -2,5 +2,7 @@ module.exports = Object.freeze({
   SERVER_NAME: 'Obsidian Bears',
 
   STATUS_DELAY_TIME: 3000,
-  STREAM_VOLUME: 0.2
+  STREAM_VOLUME: 0.2,
+
+  NICEHASH_ADDRESS: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 });

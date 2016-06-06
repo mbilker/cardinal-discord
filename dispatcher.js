@@ -1,4 +1,4 @@
-const debug = require('debug')('hubot-dispatcher');
+const debug = require('debug')('cardinal:dispatcher');
 const EventEmitter = require('events').EventEmitter;
 
 const dispatcher = new EventEmitter();

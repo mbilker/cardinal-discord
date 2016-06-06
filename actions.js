@@ -25,6 +25,8 @@ const Actions = keyMirror({
   QUEUE_ITEM: null,
   QUEUE_SKIP: null,
   QUEUE_DONE_ITEM: null,
+
+  NICEHASH_DISPLAY: null,
 });
 
 module.exports = Actions;

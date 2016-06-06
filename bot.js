@@ -132,6 +132,8 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     e.message.channel.sendMessage(helpText);
   } else if (c === '`userinfo') {
     e.message.channel.sendMessage(userInfo(e.message.author, e.message.guild));
+  } else if (c === '`nicehash') {
+    Dispatcher.emit(Actions.NICEHASH_DISPLAY, m);
   //} else if (c === '`summon') {
   //  Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
   //} else if (c === '`leave') {
@@ -143,7 +145,7 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   } else if (e.message.author.id === '142098955818369024' && c === '`next') {
     Dispatcher.emit(Actions.QUEUE_SKIP, m);
   } else if (args[0].toLowerCase() === '`queue') {
-    Dispatcher.emit(Actions.QUEUE_ITEM, m, args[1]);
+    Dispatcher.emit(Actions.QUEUE_ITEM, m, args.slice(1).join(' '));
   } else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
     executeJS(m, args);
   }
