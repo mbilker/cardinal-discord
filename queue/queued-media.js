@@ -37,7 +37,7 @@ class QueuedMedia {
     } else if (this.type === Types.LOCAL) {
       this.format = info.format;
       this.encoding = info.encoding;
-      this.url = info.filePath;
+      this.url = info.url;
     } else {
       throw new Error(`unknown type: ${this.type}`);
     }

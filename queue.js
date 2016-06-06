@@ -1,5 +1,7 @@
 "use strict";
 
+const fs = require('fs');
+
 const debug = require('debug')('cardinal:queue');
 const ytdl = require('ytdl-core');
 
@@ -92,20 +94,35 @@ class MusicPlayer {
       return;
     }
 
+
     this.fetchYoutubeInfo(url).then((arr) => {
       debug('fetchYoutubeInfo promise resolve');
 
       const queued = new QueuedMedia(this, Types.YTDL, m.author.id, ...arr);
       this.queue.add(queued);
       this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
-        if (ok) {
-          m.channel.sendMessage(`Added ${queued.printString()}`);
-        }
+        if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
       });
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
       }
+
+      fs.access(url, fs.R_OK, (err2) => {
+        debug('file access', err2);
+
+        if (!err2) {
+          const queued = new QueuedMedia(this, Types.LOCAL, m.author.id, {
+            format: 'ffmpeg',
+            encoding: 'ffmpeg',
+            url,
+          });
+          this.queue.add(queued);
+          this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
+            if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
+          });
+        }
+      });
     });
   }
 
