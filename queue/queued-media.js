@@ -197,14 +197,15 @@ class QueuedMedia {
   }
 
   printString() {
-    const time = this.time ? (Utils.formatTime(this.time | 0) + '/') : '';
+    const time = this.time ? `${Utils.formatTime(this.time | 0)}/` : '';
+    const title = this.title ? `**${this.title}**` : '';
 
     if (this.type === Types.YTDL) {
       const length = Utils.formatTime(this.duration);
 
-      return `(${time}${length}) \`[${this.encoding}]\` **${this.title}** (${this.id}) (<@${this.ownerId}>)`;
+      return `(${time}${length}) \`[${this.encoding}]\` ${title} (${this.id}) (<@${this.ownerId}>)`;
     }
-    return `NON-YTDL \`[${this.encoding}]\` **${this.title}** - ${this.url}`;
+    return `NON-YTDL \`[${this.encoding}]\` ${title} - ${this.url}`;
   }
 };
 
