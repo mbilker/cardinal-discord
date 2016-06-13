@@ -131,19 +131,7 @@ class MusicPlayer {
         formats,
       };
 
-      redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
-        if (err) {
-          debug('error saving to redis', err);
-          m.channel.sendMessage('An error occurred saving the queue request to Redis');
-          return;
-        }
-
-        debug('saved to redis');
-
-        this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
-          if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
-        });
-      });
+      this.queueSave(m, record);
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
@@ -167,20 +155,27 @@ class MusicPlayer {
             info,
           };
 
-          redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
-            if (err) {
-              debug('error saving to redis', err, err.stack);
-              m.channel.sendMessage('An error occurred saving the queue request to Redis');
-              return;
-            }
-
-            debug('saved to redis');
-
-            this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
-              if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
-            });
-          });
+          this.queueSave(m, record);
         }
+      });
+    });
+  }
+
+  queueSave(m, record) {
+    redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
+      if (err) {
+        debug('error saving to redis', err, err.stack);
+        m.channel.sendMessage('An error occurred saving the queue request to Redis');
+        return;
+      }
+
+      debug('saved to redis');
+
+      this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
+        debug('queueSave promise resolve', !!printString);
+        if (printString) m.channel.sendMessage(`Added ${printString}`);
+      }).catch((err) => {
+        debug('queueSave promise reject', err);
       });
     });
   }
@@ -231,14 +226,14 @@ class MusicPlayer {
         } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
           this.currentlyPlaying.play(this.voiceConnection);
         } else {
-          const promise = authorVoiceChannel.join(false, false).then((info) => {
+          return authorVoiceChannel.join(false, false).then((info) => {
             debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
 
             this.voiceConnection = info.voiceConnection;
 
             this.currentlyPlaying.play(this.voiceConnection);
 
-            return true;
+            resolve(this.currentlyPlaying.printString());
           }).catch((err) => {
             debug('failed to join voice chat', err, err.stack);
 
@@ -248,13 +243,11 @@ class MusicPlayer {
 
             this.queuedDonePlaying(this.currentlyPlaying);
 
-            return false;
+            resolve(false);
           });
-
-          resolve(promise);
         }
 
-        return resolve(true);
+        return resolve(this.currentlyPlaying.printString());
       });
     });
   }
@@ -268,25 +261,23 @@ class MusicPlayer {
     }
 
     const key = `cardinal.${guild.id}:music_queue`;
-    const deferred = Promise.defer();
 
-    redisClient.llen(key, (err, len) => {
-      debug(`redis ${key}`, len, err);
+    return new Promise((resolve, reject) => {
+      redisClient.llen(key, (err, len) => {
+        debug(`redis ${key}`, len, err);
 
-      if (this.currentlyPlaying === null && len > 0) {
-        deferred.resolve(this.playNext(guild, author, channel));
-        return;
-      } else if (len === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
-        debug('handleQueued disconnect');
+        if (this.currentlyPlaying === null && len > 0) {
+          return this.playNext(guild, author, channel).then(resolve, reject);
+        } else if (len === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
+          debug('handleQueued disconnect');
 
-        this.voiceConnection.disconnect();
-        this.voiceConnection = null;
-      }
+          this.voiceConnection.disconnect();
+          this.voiceConnection = null;
+        }
 
-      deferred.resolve(true);
+        return resolve(true);
+      });
     });
-
-    return deferred.promise;
   }
 
   queuedDonePlaying(queued) {
