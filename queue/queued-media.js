@@ -13,31 +13,32 @@ const Types = require('./types');
 const Utils = require('./utils');
 
 class QueuedMedia {
-  constructor(musicPlayer, type, ownerId, info, formats) {
+  constructor(musicPlayer, record /* type, ownerId, guildId, info, formats */) {
     this.musicPlayer = musicPlayer;
-    this.type = type;
-    this.ownerId = ownerId;
+    this.type = record.type;
+    this.ownerId = record.ownerId;
+    this.guildId = record.guildId;
 
     this.id = '';
-    this.title = info.title || '';
+    this.title = record.info.title || '';
     this.url = '';
     this.duration = 0;
     this.stream = null;
     this.time = null;
 
     if (this.type === Types.YTDL) {
-      this.id = info.video_id;
-      this.duration = info.length_seconds;
-      this.formats = formats;
+      this.id = record.info.video_id;
+      this.duration = record.info.length_seconds;
+      this.formats = record.formats;
       this.formatIndex = 0;
 
       const format = this.formats[this.formatIndex];
       this.encoding = format.audioEncoding;
       this.url = format.url;
     } else if (this.type === Types.LOCAL) {
-      this.format = info.format;
-      this.encoding = info.encoding;
-      this.url = info.url;
+      this.format = record.info.format;
+      this.encoding = record.info.encoding;
+      this.url = record.info.url;
     } else {
       throw new Error(`unknown type: ${this.type}`);
     }

@@ -3,6 +3,7 @@
 const fs = require('fs');
 
 const debug = require('debug')('cardinal:queue');
+const redis = require('redis');
 const ytdl = require('ytdl-core');
 
 const Actions = require('./actions');
@@ -12,8 +13,9 @@ const Types = require('./queue/types');
 const Utils = require('./queue/utils');
 const QueuedMedia = require('./queue/queued-media');
 
-const bot = require('./bot');
-const client = bot.client;
+const client = require('./bot').client;
+
+const redisClient = redis.createClient();
 
 class MusicPlayer {
   constructor() {
@@ -41,24 +43,44 @@ class MusicPlayer {
 
   onDisplayPlaylist(m) {
     debug('QUEUE_DISPLAY_PLAYLIST');
+    const key = `cardinal.${m.guild.id}:music_queue`;
     let msg = '';
 
-    msg += 'Playlist:\n';
-    for (const item of this.queue) {
-      msg += `${item.printString()}\n`;
-    }
+    redisClient.llen(key, (err, len) => {
+      if (err) {
+        debug('error reading list length from redis', err, err.stack);
+        m.channel.sendMessage('Error reading queue list from Redis');
+        return;
+      }
 
-    if (!this.queue.size) {
-      msg += '- Nothing!\n';
-    }
+      if (this.currentlyPlaying) {
+        msg += 'Currently Playing:\n';
+        msg += this.currentlyPlaying.printString();
+        msg += '\n\n';
+      }
 
-    if (this.currentlyPlaying) {
-      msg += '\n';
-      msg += 'Currently Playing:\n';
-      msg += this.currentlyPlaying.printString();
-    }
+      msg += 'Playlist:\n';
+      if (!len) {
+        msg += '- Nothing!\n';
+        m.channel.sendMessage(msg);
+      } else {
+        redisClient.lrange(key, 0, len, (err, list) => {
+          if (err) {
+            debug('error redis lrange', err, err.stack);
+            m.channel.sendMessage('Error getting queue playlist from Redis');
+            return;
+          }
 
-    m.channel.sendMessage(msg);
+          for (const item of list) {
+            // TODO: cache these values earlier
+            const a = new QueuedMedia(this, JSON.parse(item));
+            msg += `${a.printString()}\n`;
+          }
+
+          m.channel.sendMessage(msg);
+        });
+      }
+    });
   }
 
   fetchYoutubeInfo(url) {
@@ -72,14 +94,12 @@ class MusicPlayer {
         const formats = info.formats
           .filter(x => x.audioEncoding)
           .sort(Utils.sortFormats)
-          .map(x => (
-            {
-              container: x.container,
-              url: x.url,
-              audioEncoding: x.audioEncoding,
-              audioBitrate: x.audioBitrate,
-            }
-          ));
+          .map(x => ({
+            container: x.container,
+            url: x.url,
+            audioEncoding: x.audioEncoding,
+            audioBitrate: x.audioBitrate,
+          }));
 
         resolve([info, formats]);
       });
@@ -94,14 +114,36 @@ class MusicPlayer {
       return;
     }
 
-
     this.fetchYoutubeInfo(url).then((arr) => {
       debug('fetchYoutubeInfo promise resolve');
 
-      const queued = new QueuedMedia(this, Types.YTDL, m.author.id, ...arr);
-      this.queue.add(queued);
-      this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
-        if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
+      const fields = ['title', 'video_id', 'length_seconds'];
+      const info = fields.reduce((obj, field) => {
+        obj[field] = arr[0][field];
+        return obj;
+      }, {});
+      const formats = arr[1];
+
+      const record = {
+        type: Types.YTDL,
+        ownerId: m.author.id,
+        guildId: m.guild.id,
+        info,
+        formats,
+      };
+
+      redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
+        if (err) {
+          debug('error saving to redis', err);
+          m.channel.sendMessage('An error occurred saving the queue request to Redis');
+          return;
+        }
+
+        debug('saved to redis');
+
+        this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
+          if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
+        });
       });
     }).catch((err) => {
       if (err) {
@@ -112,14 +154,32 @@ class MusicPlayer {
         debug('file access', err2);
 
         if (!err2) {
-          const queued = new QueuedMedia(this, Types.LOCAL, m.author.id, {
+          const info = {
+            title: 'ffmpeg',
             format: 'ffmpeg',
             encoding: 'ffmpeg',
             url,
-          });
-          this.queue.add(queued);
-          this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
-            if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
+          };
+
+          const record = {
+            type: Types.LOCAL,
+            ownerId: m.author.id,
+            guildId: m.guild.id,
+            info,
+          };
+
+          redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
+            if (err) {
+              debug('error saving to redis', err, err.stack);
+              m.channel.sendMessage('An error occurred saving the queue request to Redis');
+              return;
+            }
+
+            debug('saved to redis');
+
+            this.handleQueued(m.guild, m.author, m.channel).then((ok) => {
+              if (ok) m.channel.sendMessage(`Added ${queued.printString()}`);
+            });
           });
         }
       });
@@ -137,63 +197,105 @@ class MusicPlayer {
 
     this.currentlyPlaying.stopPlaying();
     this.currentlyPlaying = null;
-    this.handleQueued();
+    this.handleQueued(m.guild);
+  }
+
+  playNext(guild, author, channel) {
+    debug('playNext');
+
+    const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
+
+    return new Promise((resolve, reject) => {
+      redisClient.lpop(`cardinal.${guild.id}:music_queue`, (err, reply) => {
+        if (err) {
+          debug('error getting next item from redis', err.stack);
+          return;
+        }
+
+        let record = null;
+        try {
+          record = JSON.parse(reply);
+        } catch (err) {
+          debug('error parsing Redis response', err, reply);
+          return;
+        }
+
+        const next = new QueuedMedia(this, record || {});
+        this.currentlyPlaying = next;
+
+        if (!authorVoiceChannel && channel) {
+          channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
+
+          this.queuedDonePlaying(this.currentlyPlaying);
+
+          return resolve(false);
+        } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
+          this.currentlyPlaying.play(this.voiceConnection);
+        } else {
+          const promise = authorVoiceChannel.join(false, false).then((info) => {
+            debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
+
+            this.voiceConnection = info.voiceConnection;
+
+            this.currentlyPlaying.play(this.voiceConnection);
+
+            return true;
+          }).catch((err) => {
+            debug('failed to join voice chat', err, err.stack);
+
+            if (err.message === 'Missing permission' && authorVoiceChannel) {
+              channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
+            }
+
+            this.queuedDonePlaying(this.currentlyPlaying);
+
+            return false;
+          });
+
+          resolve(promise);
+        }
+
+        return resolve(true);
+      });
+    });
   }
 
   handleQueued(guild, author, channel) {
     debug('handleQueued');
 
-    const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
-
-    if (this.currentlyPlaying === null && this.queue.size > 0) {
-      const next = Array.from(this.queue)[0];
-      this.currentlyPlaying = next;
-      this.queue.delete(next);
-
-      if (!authorVoiceChannel && channel) {
-        channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
-
-        this.queuedDonePlaying(this.currentlyPlaying);
-
-        return Promise.resolve(false);
-      } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
-        this.currentlyPlaying.play(this.voiceConnection);
-      } else {
-        return authorVoiceChannel.join(false, false).then((info) => {
-          debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
-
-          this.voiceConnection = info.voiceConnection;
-
-          this.currentlyPlaying.play(this.voiceConnection);
-
-          return true;
-        }).catch((err) => {
-          debug('failed to join voice chat', err);
-          console.log(err, err.stack);
-
-          if (err.message === 'Missing permission' && authorVoiceChannel) {
-            channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
-          }
-
-          this.queuedDonePlaying(this.currentlyPlaying);
-
-          return false;
-        });
-      }
-    } else if (this.queue.size === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
-      debug('handleQueued disconnect');
-
-      this.voiceConnection.disconnect();
-      this.voiceConnection = null;
+    if (!guild) {
+      debug('no guild provided');
+      return;
     }
 
-    return Promise.resolve(true);
+    const key = `cardinal.${guild.id}:music_queue`;
+    const deferred = Promise.defer();
+
+    redisClient.llen(key, (err, len) => {
+      debug(`redis ${key}`, len, err);
+
+      if (this.currentlyPlaying === null && len > 0) {
+        deferred.resolve(this.playNext(guild, author, channel));
+        return;
+      } else if (len === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
+        debug('handleQueued disconnect');
+
+        this.voiceConnection.disconnect();
+        this.voiceConnection = null;
+      }
+
+      deferred.resolve(true);
+    });
+
+    return deferred.promise;
   }
 
   queuedDonePlaying(queued) {
     if (queued === this.currentlyPlaying) {
+      const guild = client.Guilds.get(queued.guildId);
+
       this.currentlyPlaying = null;
-      this.handleQueued();
+      this.handleQueued(guild);
     }
   }
 }
