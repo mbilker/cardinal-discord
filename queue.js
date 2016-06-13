@@ -19,7 +19,6 @@ const redisClient = redis.createClient();
 
 class MusicPlayer {
   constructor() {
-    this.queue = new Set();
     this.currentlyPlaying = null;
     this.voiceConnection = null;
 
