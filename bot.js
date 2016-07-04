@@ -1,5 +1,6 @@
 "use strict";
 
+const os = require('os');
 const util = require('util');
 
 const debug = require('debug')('cardinal:discord');
@@ -142,6 +143,8 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_NOW_PLAYING, m);
   } else if (c === '`li') {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_PLAYLIST, m);
+  } else if (c === '`sys' || c === '`sysinfo') {
+    displaySysInfo(m);
   } else if (e.message.author.id === '142098955818369024' && c === '`next') {
     Dispatcher.emit(Actions.QUEUE_SKIP, m);
   } else if (args[0].toLowerCase() === '`queue') {
@@ -164,6 +167,18 @@ client.Dispatcher.onAny((type, args) => {
   console.log("args " + JSON.stringify(args));
 });
 */
+
+function displaySysInfo(m) {
+  const cpu = os.cpus()[0];
+  const mem = os.totalmem() / 1024 / 1024 / 1024;
+
+  m.channel.sendMessage(`\`\`\`php
+Cardinal System Info:
+CPU:    | ${cpu.model}
+SPEED:  | ${cpu.speed / 1000} GHz
+MEMORY: | ${mem} GB
+\`\`\``);
+}
 
 function userInfo(u, g) {
   return `\`\`\`
