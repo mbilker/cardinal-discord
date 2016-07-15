@@ -6,6 +6,7 @@ debug.enable('hubot*,cardinal*');
 //require('./mpd.js');
 require('./queue.js');
 require('./nicehash.js');
+require('./status.js');
 //require('./web.js');
 
 const bot = require('./bot.js');

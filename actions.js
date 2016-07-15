@@ -27,6 +27,9 @@ const Actions = keyMirror({
   QUEUE_DONE_ITEM: null,
 
   NICEHASH_DISPLAY: null,
+
+  STATUS_SYS_INFO: null,
+  STATUS_USER_INFO: null,
 });
 
 module.exports = Actions;

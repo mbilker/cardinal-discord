@@ -131,8 +131,10 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     e.message.channel.sendMessage('ping');
   } else if (c === '`help') {
     e.message.channel.sendMessage(helpText);
-  } else if (c === '`userinfo') {
-    e.message.channel.sendMessage(userInfo(e.message.author, e.message.guild));
+  } else if (c === '`sys' || c === '`sysinfo') {
+    Dispatcher.emit(Actions.STATUS_SYS_INFO, m);
+  } else if (c === '`user' || c === '`userinfo') {
+    Dispatcher.emit(Actions.STATUS_USER_INFO, m);
   } else if (c === '`nicehash') {
     Dispatcher.emit(Actions.NICEHASH_DISPLAY, m);
   //} else if (c === '`summon') {
@@ -143,8 +145,6 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_NOW_PLAYING, m);
   } else if (c === '`li') {
     Dispatcher.emit(Actions.QUEUE_DISPLAY_PLAYLIST, m);
-  } else if (c === '`sys' || c === '`sysinfo') {
-    displaySysInfo(m);
   } else if (e.message.author.id === '142098955818369024' && c === '`next') {
     Dispatcher.emit(Actions.QUEUE_SKIP, m);
   } else if (args[0].toLowerCase() === '`queue') {
@@ -152,6 +152,8 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   } else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
     executeJS(m, args);
   }
+  //console.log(e && e.stack);
+  //e.message.channel.sendMessage(`Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
 });
 
 /*
@@ -167,30 +169,6 @@ client.Dispatcher.onAny((type, args) => {
   console.log("args " + JSON.stringify(args));
 });
 */
-
-function displaySysInfo(m) {
-  const cpu = os.cpus()[0];
-  const mem = os.totalmem() / 1024 / 1024 / 1024;
-
-  m.channel.sendMessage(`\`\`\`php
-Cardinal System Info:
-CPU:    | ${cpu.model}
-SPEED:  | ${cpu.speed / 1000} GHz
-MEMORY: | ${mem} GB
-\`\`\``);
-}
-
-function userInfo(u, g) {
-  return `\`\`\`
-       ID: ${u.id} (disc: ${u.discriminator})
- USERNAME: ${u.username}
-     GAME: ${u.game} (name: ${u.gameName})
- CREATION: ${u.createdAt}
-
-    PERMS:
-${JSON.stringify(u.permissionsFor(g), null, 2)}
-\`\`\``;
-};
 
 function executeJS(m, args) {
   debug('EXECUTE_JS', args);
