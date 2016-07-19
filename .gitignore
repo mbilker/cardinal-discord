@@ -1,2 +1,5 @@
 node_modules/
 hubot_oath.json
+
+node-v*.tar.xz
+node-v*
