@@ -1,5 +1,7 @@
 "use strict";
 
+const ytdl = require('ytdl-core');
+
 function sortFormats(a, b) {
   // anything towards the beginning of the array is -1, 1 to move it to the end
   if (a.audioEncoding === 'opus' && b.audioEncoding !== 'opus') {
@@ -30,7 +32,31 @@ function formatTime(seconds) {
   return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
 };
 
+function fetchYoutubeInfo(url) {
+  return new Promise((resolve, reject) => {
+    ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      const formats = info.formats
+        .filter(x => x.audioEncoding)
+        .sort(sortFormats)
+        .map(x => ({
+          container: x.container,
+          url: x.url,
+          audioEncoding: x.audioEncoding,
+          audioBitrate: x.audioBitrate,
+        }));
+
+      resolve([info, formats]);
+    });
+  });
+};
+
 module.exports = {
   sortFormats,
   formatTime,
+  fetchYoutubeInfo,
 };

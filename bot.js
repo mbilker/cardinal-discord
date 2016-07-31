@@ -6,6 +6,8 @@ const util = require('util');
 const debug = require('debug')('cardinal:discord');
 const Discordie = require('discordie');
 
+const CommandManager = require('./Core/CommandManager');
+
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
 const Settings = require('./settings');
@@ -14,6 +16,8 @@ const client = new Discordie();
 const oath = require('./hubot_oath.json');
 
 let guild = null;
+
+CommandManager.setPrefix('`');
 
 // bot.on('debug', (msg) => {
 //   debug(msg);
@@ -141,10 +145,6 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   //  Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
   //} else if (c === '`leave') {
   //  Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
-  } else if (c === '`np') {
-    Dispatcher.emit(Actions.QUEUE_DISPLAY_NOW_PLAYING, m);
-  } else if (c === '`li') {
-    Dispatcher.emit(Actions.QUEUE_DISPLAY_PLAYLIST, m);
   } else if (e.message.author.id === '142098955818369024' && c === '`next') {
     Dispatcher.emit(Actions.QUEUE_SKIP, m);
   } else if (args[0].toLowerCase() === '`queue') {
@@ -154,6 +154,8 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   }
   //console.log(e && e.stack);
   //e.message.channel.sendMessage(`Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
+
+  CommandManager.handle(m);
 });
 
 /*

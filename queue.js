@@ -4,7 +4,9 @@ const fs = require('fs');
 
 const debug = require('debug')('cardinal:queue');
 const redis = require('redis');
-const ytdl = require('ytdl-core');
+
+const Command = require('./Core/Command');
+const Module = require('./Core/Module');
 
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
@@ -17,18 +19,29 @@ const client = require('./bot').client;
 
 const redisClient = redis.createClient();
 
-class MusicPlayer {
+class MusicPlayer extends Module {
   constructor() {
+    super();
+
     this.currentlyPlaying = null;
     this.voiceConnection = null;
 
     this.QueuedMedia = QueuedMedia;
 
-    Dispatcher.on(Actions.QUEUE_DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
-    Dispatcher.on(Actions.QUEUE_DISPLAY_PLAYLIST, this.onDisplayPlaylist.bind(this));
+    this.registerCommands([
+      new Command(this, 'np', this.onNowPlaying),
+      new Command(this, 'li', this.onDisplayPlaylist),
+    ]);
+
+    //Dispatcher.on(Actions.QUEUE_DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
+    //Dispatcher.on(Actions.QUEUE_DISPLAY_PLAYLIST, this.onDisplayPlaylist.bind(this));
     Dispatcher.on(Actions.QUEUE_ITEM, this.queueItem.bind(this));
     Dispatcher.on(Actions.QUEUE_SKIP, this.skipSong.bind(this));
     Dispatcher.on(Actions.QUEUE_DONE_ITEM, this.queuedDonePlaying.bind(this));
+  }
+
+  getRedisKey(guildId) {
+    return `cardinal.${guildId}:music_queue`;
   }
 
   onNowPlaying(m) {
@@ -42,7 +55,7 @@ class MusicPlayer {
 
   onDisplayPlaylist(m) {
     debug('QUEUE_DISPLAY_PLAYLIST');
-    const key = `cardinal.${m.guild.id}:music_queue`;
+    const key = this.getRedisKey(m.guild.id);
     let msg = '';
 
     redisClient.llen(key, (err, len) => {
@@ -82,29 +95,6 @@ class MusicPlayer {
     });
   }
 
-  fetchYoutubeInfo(url) {
-    return new Promise((resolve, reject) => {
-      ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        const formats = info.formats
-          .filter(x => x.audioEncoding)
-          .sort(Utils.sortFormats)
-          .map(x => ({
-            container: x.container,
-            url: x.url,
-            audioEncoding: x.audioEncoding,
-            audioBitrate: x.audioBitrate,
-          }));
-
-        resolve([info, formats]);
-      });
-    });
-  }
-
   queueItem(m, url) {
     debug('QUEUE_ITEM', url);
     if (!url) {
@@ -113,7 +103,7 @@ class MusicPlayer {
       return;
     }
 
-    this.fetchYoutubeInfo(url).then((arr) => {
+    Utils.fetchYoutubeInfo(url).then((arr) => {
       debug('fetchYoutubeInfo promise resolve');
 
       const fields = ['title', 'video_id', 'length_seconds'];
@@ -131,7 +121,7 @@ class MusicPlayer {
         formats,
       };
 
-      this.queueSave(m, record);
+      this.queueSave(m.guild.id, record, this.afterRedisSave.bind(this, m));
     }).catch((err) => {
       if (err) {
         debug('error pulling youtube data', err.stack);
@@ -155,14 +145,14 @@ class MusicPlayer {
             info,
           };
 
-          this.queueSave(m, record);
+          this.queueSave(m.guild.id, record, this.afterRedisSave.bind(this, m));
         }
       });
     });
   }
 
-  queueSave(m, record) {
-    redisClient.rpush(`cardinal.${m.guild.id}:music_queue`, JSON.stringify(record), (err) => {
+  queueSave(guildId, record, cb) {
+    redisClient.rpush(`cardinal.${guildId}:music_queue`, JSON.stringify(record), (err) => {
       if (err) {
         debug('error saving to redis', err, err.stack);
         m.channel.sendMessage('An error occurred saving the queue request to Redis');
@@ -171,12 +161,16 @@ class MusicPlayer {
 
       debug('saved to redis');
 
-      this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
-        debug('queueSave promise resolve', !!printString);
-        if (printString) m.channel.sendMessage(`Added ${printString}`);
-      }).catch((err) => {
-        debug('queueSave promise reject', err);
-      });
+      cb(record);
+    });
+  }
+
+  afterRedisSave(m) {
+    this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
+      debug('queueSave promise resolve', !!printString);
+      if (printString) m.channel.sendMessage(`Added ${printString}`);
+    }).catch((err) => {
+      debug('queueSave promise reject', err);
     });
   }
 
