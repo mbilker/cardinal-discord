@@ -35,7 +35,7 @@ class CommandManager {
 
     const cmd = this._commands[name];
     if (cmd) {
-      return cmd.handle(msg);
+      return cmd.handle(msg, args.slice(1));
     }
 
     return false;

@@ -13,8 +13,8 @@ class Command {
     return this._commandName;
   }
 
-  handle(msg) {
-    return this.handler(msg);
+  handle(msg, args) {
+    return this.handler(msg, args);
   }
 }
 
