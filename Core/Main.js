@@ -6,8 +6,6 @@ const chalk = require('chalk');
 
 class Main {
   constructor() {
-    console.log('initializing Main');
-
     process.on('unhandledRejection', function onError(err) {
       throw err;
     });
@@ -16,6 +14,7 @@ class Main {
 
     this.buildContainer();
     this.setupLogger();
+    this.run();
   }
 
   buildRepl() {
@@ -35,9 +34,13 @@ class Main {
     this.logger.exitOnError = true;
 
     this.container.set('logger', this.logger);
+  }
 
+  run() {
     console.log(chalk.blue(`\n\n\t${this.options.name} v${this.options.version} - by ${this.options.author}\n\n`));
   }
 }
 
-module.exports = Main;
+exports.initialize = function initialize() {
+  return new Main();
+};
