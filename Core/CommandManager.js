@@ -1,15 +1,19 @@
 "use strict";
 
-const debug = require('debug')('cardinal:command-manager');
+//const debug = require('debug')('cardinal:command-manager');
 
 class CommandManager {
-  constructor() {
+  constructor(container) {
+    this.container = container;
+
+    this.logger = container.get('logger');
+
     this._commands = {};
     this._prefix = null;
   }
 
   setPrefix(prefix) {
-    debug(`set prefix to ${prefix}`);
+    this.logger.debug(`set prefix to ${prefix}`);
     this._prefix = prefix;
   }
 
@@ -25,13 +29,13 @@ class CommandManager {
 
     if (!content.startsWith(this._prefix)) return false;
 
-    debug(`handling ${content}`);
+    this.logger.debug(`handling ${content}`);
 
     const fullCmd = content.slice(this._prefix.length);
     const args = fullCmd.split(' ').filter(x => x.length);
     const name = args[0].toLowerCase();
 
-    debug(`args: ${args}`);
+    this.logger.debug(`args: ${args}`);
 
     const cmd = this._commands[name];
     if (cmd) {
@@ -42,4 +46,6 @@ class CommandManager {
   }
 }
 
-module.exports = new CommandManager();
+module.exports = function createCommandManager(container) {
+  return new CommandManager(container);
+};

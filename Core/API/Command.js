@@ -1,7 +1,5 @@
 "use strict";
 
-const CommandManager = require('./CommandManager');
-
 class Command {
   static get name() {
     throw new Error('Command must override get name()');
@@ -19,6 +17,7 @@ class Command {
     this.container = container;
 
     this.client = container.get('client');
+    this.commandManager = container.get('commandManager');
   }
 
   register() {
@@ -26,7 +25,7 @@ class Command {
   }
 
   hears(regex, cb) {
-    return CommandManager.register(this, regex, cb);
+    return this.commandManager.register(this, regex, cb);
   }
 }
 
