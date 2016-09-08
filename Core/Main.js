@@ -4,6 +4,8 @@ const path = require('path');
 
 const chalk = require('chalk');
 
+const Command = require('./API/Command');
+const CommandManager = require('./CommandManager.js');
 const Module = require('./API/Module');
 
 class Main {
@@ -26,14 +28,14 @@ class Main {
   buildRepl() {
     this.repl = require('repl').start('> ');
     this.repl.context.Module = Module;
-    this.repl.context.Command = require('./API/Command');
-    this.repl.context.CommandManager = require('./CommandManager');
+    this.repl.context.Command = Command;
+    this.repl.context.CommandManager = CommandManager;
   }
 
   buildContainer() {
     this.container = new Map();
 
-    this.commandManager = require('./CommandManager')(this.container);
+    this.commandManager = new CommandManager(this.container);
     this.container.set('commandManager', this.commandManager);
 
     this.loadedModules = new Map();
@@ -41,7 +43,8 @@ class Main {
   }
 
   setupLogger() {
-    this.logger = require('./Logger')(path.join(__dirname, '..', 'logs'), 'cardinal');   this.logger.level = 'debug';
+    this.logger = require('./Logger')(path.join(__dirname, '..', 'logs'), 'cardinal');
+    this.logger.level = 'debug';
     this.logger.exitOnError = true;
 
     this.container.set('logger', this.logger);
