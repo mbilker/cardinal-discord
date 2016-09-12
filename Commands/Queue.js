@@ -2,9 +2,7 @@
 
 const Command = require('../Core/Command');
 
-const RedisBrain = require('../Core/Brain/Redis');
-
-const QueuedMedia = require('../queue/queued-media');
+const QueueServer = require('../queue/instance');
 
 class Queue extends Command {
   static get name() {
@@ -15,27 +13,22 @@ class Queue extends Command {
     return 'Queue up music to play in the server.';
   }
 
-  constructor() {
-    super();
-
-    this.currentlyPlaying = null;
-    this.voiceConnection = null;
-
-    this.QueuedMedia = QueuedMedia;
+  constructor(container) {
+    super(container);
   }
 
   getRedisKey(guildId) {
     return `cardinal.${guildId}:music_queue`;
   }
 
-  handle() {
-    this.responds(/^np$/g, (m) => {
-      if (this.currentlyPlaying === null) {
+  register() {
+    this.hears(/^np$/g, (m) => {
+      if (QueueServer.currentlyPlaying === null) {
         m.channel.sendMessage('No queued song');
         return;
       }
 
-      m.channel.sendMessage(this.currentlyPlaying.printString());
+      m.channel.sendMessage(QueueServer.currentlyPlaying.printString());
     });
   }
 }
