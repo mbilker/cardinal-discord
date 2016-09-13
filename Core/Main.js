@@ -64,7 +64,7 @@ class Main {
   }
 
   loadModules() {
-    const { modules } = this.options;
+    const modules = this.options.modules;
 
     this.logger.info('Main::loadModules()');
 
