@@ -5,7 +5,6 @@
 class CommandManager {
   constructor(container) {
     this.container = container;
-
     this.logger = container.get('logger');
 
     this._commands = {};
@@ -13,12 +12,11 @@ class CommandManager {
   }
 
   setPrefix(prefix) {
-    this.logger.debug(`set prefix to ${prefix}`);
     this._prefix = prefix;
   }
 
-  add(mod, cmd) {
-    this._commands[cmd.name] = cmd;
+  add(mod, cmd, func) {
+    this._commands[cmd] = func;
   }
 
   /**
@@ -37,15 +35,13 @@ class CommandManager {
 
     this.logger.debug(`args: ${args}`);
 
-    const cmd = this._commands[name];
-    if (cmd) {
-      return cmd.handle(msg, args.slice(1));
+    const func = this._commands[name];
+    if (func) {
+      return func(msg, args.slice(1));
     }
 
     return false;
   }
 }
 
-module.exports = function createCommandManager(container) {
-  return new CommandManager(container);
-};
+module.exports = CommandManager;
