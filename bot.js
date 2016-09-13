@@ -6,8 +6,6 @@ const util = require('util');
 const debug = require('debug')('cardinal:discord');
 const Discordie = require('discordie');
 
-const CommandManager = require('./Core/CommandManager');
-
 const Actions = require('./actions');
 const Dispatcher = require('./dispatcher');
 const Settings = require('./settings');
@@ -16,8 +14,6 @@ const client = new Discordie();
 const oath = require('./hubot_oath.json');
 
 let guild = null;
-
-CommandManager.setPrefix('`');
 
 // bot.on('debug', (msg) => {
 //   debug(msg);
@@ -155,7 +151,7 @@ client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, (e) => {
   //console.log(e && e.stack);
   //e.message.channel.sendMessage(`Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
 
-  CommandManager.handle(m);
+  this.commandManager.handle(m);
 });
 
 /*
