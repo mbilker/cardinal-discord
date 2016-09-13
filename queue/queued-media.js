@@ -6,11 +6,10 @@ const url = require('url');
 const debug = require('debug')('cardinal:queued-media');
 const https = require('follow-redirects').https;
 
-const Actions = require('../actions');
-const Dispatcher = require('../dispatcher');
-
 const Types = require('./types');
 const Utils = require('./utils');
+
+let logger = null;
 
 class QueuedMedia {
   constructor(musicPlayer, record /* type, ownerId, guildId, info, formats */) {
@@ -48,16 +47,20 @@ class QueuedMedia {
     this.printString = this.printString.bind(this);
   }
 
+  static initialize(container) {
+    logger = container.get('logger');
+  }
+
   hookEncoderEvents() {
     this.encoder.once('end', () => {
-      debug('encoder end', this.id || this.url, this.encoding);
+      logger.debug('encoder end', this.id || this.url, this.encoding);
       this.donePlaying();
     });
     this.encoder.once('unpipe', () => {
-      debug('encoder unpipe', this.id || this.url, this.encoding);
+      logger.debug('encoder unpipe', this.id || this.url, this.encoding);
     });
     this.encoder.once('error', (err) => {
-      debug('encoder error', this.id || this.url, this.encoding, err);
+      logger.debug('encoder error', this.id || this.url, this.encoding, err);
     });
   }
 
@@ -67,14 +70,14 @@ class QueuedMedia {
     this.stream.resetTimestamp();
     this.stream.removeAllListeners('timestamp');
     this.stream.on('timestamp', (time) => {
-      // debug('stream timestamp', this.id || this.url, this.encoding, time);
+      // logger.debug('stream timestamp', this.id || this.url, this.encoding, time);
       this.time = time;
     });
     this.stream.once('end', () => {
-      debug('stream end', this.id || this.url, this.encoding);
+      logger.debug('stream end', this.id || this.url, this.encoding);
     });
     this.stream.once('unpipe', () => {
-      debug('stream unpipe', this.id || this.url, this.encoding);
+      logger.debug('stream unpipe', this.id || this.url, this.encoding);
     });
   }
 
@@ -90,8 +93,8 @@ class QueuedMedia {
     if (this.encoding === 'opus') {
       this.playOpusHTTPS(voiceConnection);
     } else {
-      debug(`playHTTPS: ${this.id} ${this.encoding}`);
-      debug('audio is not opus, using ffmpeg');
+      logger.debug(`playHTTPS: ${this.id} ${this.encoding}`);
+      logger.debug('audio is not opus, using ffmpeg');
 
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
@@ -107,7 +110,7 @@ class QueuedMedia {
   }
 
   playLocal(voiceConnection) {
-    debug(`playLocal: ${this.url} ${this.encoding}`);
+    logger.debug(`playLocal: ${this.url} ${this.encoding}`);
 
     if (this.encoding === 'opus') {
       this.encoder = voiceConnection.createExternalEncoder({
@@ -128,7 +131,7 @@ class QueuedMedia {
   }
 
   playOpusHTTPS(voiceConnection, retry) {
-    debug(`playOpusHTTPS: ${this.id} ${this.encoding}`);
+    logger.debug(`playOpusHTTPS: ${this.id} ${this.encoding}`);
 
     const parsed = url.parse(this.url);
     //parsed.rejectUnauthorized = false;
@@ -136,10 +139,10 @@ class QueuedMedia {
     const req = https.get(parsed);
 
     req.once('response', (res) => {
-      debug(`have response: ${res.statusCode}`);
+      logger.debug(`have response: ${res.statusCode}`);
 
       if (res.statusCode === 302 && this.type === Types.YTDL && (this.formatIndex + 1) !== this.formats.length) {
-        debug(`damn youtube 302`);
+        logger.debug(`damn youtube 302`);
 
         this.formatIndex++;
 
@@ -150,11 +153,11 @@ class QueuedMedia {
         this.play(voiceConnection);
         return;
       } else if (res.statusCode === 302 && !retry) {
-        debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
+        logger.debug(`redirect playing ${this.id}: status code ${res.statusCode}`);
         setTimeout(() => this.playOpusHTTPS(voiceConnection, true), 1000);
         return;
       } else if (res.statusCode !== 200) {
-        debug(`error playing ${this.id}: status code ${res.statusCode}`);
+        logger.debug(`error playing ${this.id}: status code ${res.statusCode}`);
         this.donePlaying();
         return;
       }
@@ -171,13 +174,13 @@ class QueuedMedia {
     });
 
     req.on('error', (err) => {
-      debug('request error', this.id, err);
+      logger.debug('request error', this.id, err);
       this.donePlaying();
     });
   }
 
   stopPlaying() {
-    debug('stopPlaying', this.id || this.url, this.encoding);
+    logger.debug('stopPlaying', this.id || this.url, this.encoding);
 
     if (this.stream) {
       this.stream.unpipeAll();
@@ -192,9 +195,9 @@ class QueuedMedia {
   }
 
   donePlaying() {
-    debug('donePlaying', this.id || this.url, this.encoding);
+    logger.debug('donePlaying', this.id || this.url, this.encoding);
     this.stopPlaying();
-    Dispatcher.emit(Actions.QUEUE_DONE_ITEM, this);
+    this.musicPlayer.queuedDonePlaying(this);
   }
 
   printString() {
