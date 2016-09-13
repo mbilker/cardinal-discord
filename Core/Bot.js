@@ -15,12 +15,11 @@ const oath = require('../hubot_oath.json');
 class Bot {
   constructor(container) {
     this.container = container;
+    this.commandManager = container.get('commandManager');
     this.logger = container.get('logger');
 
     this.client = new Discordie();
     this.primaryGuild = null;
-
-    this.container.set('bot', this);
 
     this.setupEventHandlers();
   }
@@ -40,11 +39,13 @@ class Bot {
 
   reconnect(channel) {
     const channelName = channel.name;
+
+    // this example will stop reconnecting after 1 attempt
+    // you can continue trying to reconnect
+    // TODO: implement this.onConnected
     channel.join()
       .then(info => this.onConnected(info))
       .catch(err => console.log(`Failed to connect to ${channelName}`));
-    // this example will stop reconnecting after 1 attempt
-    // you can continue trying to reconnect
   }
 
   onGatewayReady(e) {
@@ -52,7 +53,7 @@ class Bot {
 
     this.primaryGuild = this.client.Guilds.getBy('name', Settings.SERVER_NAME);
 
-    if (this.guild) {
+    if (this.primaryGuild) {
       this.logger.debug('Found correct server!');
       //Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
     } else {
@@ -106,7 +107,7 @@ class Bot {
     const m = e.message;
     const content = m.content;
     const c = content.toLowerCase();
-    const args = content.split(' ').filter(x => x.length);
+    //const args = content.split(' ').filter(x => x.length);
 
     if (c === 'ping' && m.author.id !== this.client.User.id) {
       e.message.channel.sendMessage('pong');
