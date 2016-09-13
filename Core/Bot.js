@@ -101,6 +101,11 @@ class Bot {
     setTimeout(this.start, delay);
   }
 
+  onCommandError(m, err) {
+    this.logger.error(`Error processing command: ${e && e.stack}`);
+    m.channel.sendMessage(`${m.author.mention} Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
+  }
+
   onMessageCreate(e) {
     if (!e.message.content) return;
 
@@ -132,25 +137,23 @@ class Bot {
     //} else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
     //  executeJS(m, args);
     }
-    //console.log(e && e.stack);
-    //e.message.channel.sendMessage(`Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
 
-    this.commandManager.handle(m);
+    this.commandManager.handle(m, (err) => this.onCommandError(m, err));
   }
 }
 
 // bot.on('debug', (msg) => {
 //   debug(msg);
 // });
-function shutdownCb(err) {
-  console.log(err && err.stack);
-
-  try {
-    bot.logout();
-  } finally {
-    return process.exit(1);
-  }
-}
+//function shutdownCb(err) {
+//  console.log(err && err.stack);
+//
+//  try {
+//    bot.logout();
+//  } finally {
+//    return process.exit(1);
+//  }
+//}
 //Dispatcher.on('ctrlc', shutdownCb);
 
 const helpText = `This is *Cardinal*. A general purpose robot.

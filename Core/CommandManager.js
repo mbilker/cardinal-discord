@@ -22,7 +22,7 @@ class CommandManager {
   /**
    * Precondition: msg != null, msg.content != null
    */
-  handle(msg) {
+  handle(msg, errCb) {
     const content = msg.content.trim();
 
     if (!content.startsWith(this._prefix)) return false;
@@ -37,7 +37,12 @@ class CommandManager {
 
     const func = this._commands[name];
     if (func) {
-      return func(msg, args.slice(1));
+      let res = null;
+      try {
+        res = func(msg, args.slice(1));
+      } catch (err) {
+        errCb(err);
+      }
     }
 
     return false;
