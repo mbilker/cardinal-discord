@@ -23,6 +23,10 @@ class Module {
       this.registerCommand(cmd);
     }
   }
+
+  hears(cmd, func) {
+    this.logger.debug(`${this.constructor.name} registered ${cmd} with ${func.name}`);
+  }
 }
 
 module.exports = Module;
