@@ -4,10 +4,12 @@ debug.enable('hubot*,cardinal*');
 
 const Main = require('./Core/Main');
 
+const EvalCommand = require('./modules/eval');
 const Queue = require('./modules/queue');
 
 Main.initialize({
-  modules: [Queue /* , Nicehash, Status */ ]
+  prefix: '`',
+  modules: [Queue, EvalCommand /* , Nicehash, Status */ ]
 });
 
 //require('./icy.js');
