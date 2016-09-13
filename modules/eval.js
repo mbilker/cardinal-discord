@@ -1,5 +1,7 @@
 "use strict";
 
+const util = require('util');
+
 const Module = require('../Core/API/Module');
 
 const PREFIX = 'Result:\n```javascript\n';
@@ -10,7 +12,7 @@ class EvalCommand extends Module {
   constructor(container) {
     super(container);
 
-    this.hears(/^eval/i, this.onEvalCommand.bind(this));
+    this.hears(/eval/i, this.onEvalCommand.bind(this));
   }
 
   onEvalCommand(m, args) {
@@ -32,19 +34,19 @@ class EvalCommand extends Module {
       this.logger.debug('EXECUTE_JS res', res);
 
       const inspect = util.inspect(res);
-      let string = `${prefix}${inspect}${suffix}`;
+      let string = `${PREFIX}${inspect}${SUFFIX}`;
       this.logger.debug(`EXECUTE_JS length ${string.length}`);
 
       // max length of message is 2000 characters
       if (string.length > 2000) {
-        const stringTwo = `${prefix}${inspect.substring(0, 2000 - prefix.length - suffix.length - 3)}...${suffix}`;
+        const stringTwo = `${PREFIX}${inspect.substring(0, 2000 - PREFIX.length - SUFFIX.length - 3)}...${SUFFIX}`;
         m.channel.sendMessage(stringTwo);
       } else {
         m.channel.sendMessage(string);
       }
-    } catch (errr) {
+    } catch (err) {
       const errMsg = err ? err.stack : 'no error message';
-      m.channel.sendMessage('Something went wrong:\n```\n' + errMsg + '\n```');
+      m.reply('Something went wrong:\n```\n' + errMsg + '\n```');
     }
   }
 }
