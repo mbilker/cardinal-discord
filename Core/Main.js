@@ -46,9 +46,6 @@ class Main {
 
   setupLogger() {
     this.logger = require('./Logger')(path.join(__dirname, '..', 'logs'), 'cardinal');
-    this.logger.level = 'debug';
-    this.logger.exitOnError = true;
-
     this.container.set('logger', this.logger);
   }
 
