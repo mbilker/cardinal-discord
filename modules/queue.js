@@ -12,19 +12,19 @@ const Types = require('../queue/types');
 const Utils = require('../queue/utils');
 const QueuedMedia = require('../queue/queued-media');
 
-const client = require('../bot').client;
-
 class MusicPlayer extends Module {
   constructor(container) {
     super(container);
+
+    this.redisClient = this.container.get('redisBrain');
 
     this.currentlyPlaying = null;
     this.voiceConnection = null;
 
     this.QueuedMedia = QueuedMedia;
 
-    this.hears(/np/i, this.onNowPlaying);
-    this.hears(/li/i, this.onDisplayPlaylist);
+    this.hears(/np/i, this.onNowPlaying.bind(this));
+    this.hears(/li/i, this.onDisplayPlaylist.bind(this));
 
     //this.registerCommands([
     //  new Command(this, 'np', this.onNowPlaying),
@@ -56,7 +56,7 @@ class MusicPlayer extends Module {
     const key = this.getRedisKey(m.guild.id);
     let msg = '';
 
-    redisClient.llen(key, (err, len) => {
+    this.redisClient.llen(key, (err, len) => {
       if (err) {
         this.logger.debug('error reading list length from redis', err, err.stack);
         m.channel.sendMessage('Error reading queue list from Redis');
@@ -74,7 +74,7 @@ class MusicPlayer extends Module {
         msg += '- Nothing!\n';
         m.channel.sendMessage(msg);
       } else {
-        redisClient.lrange(key, 0, len, (err, list) => {
+        this.redisClient.lrange(key, 0, len, (err, list) => {
           if (err) {
             this.logger.debug('error redis lrange', err, err.stack);
             m.channel.sendMessage('Error getting queue playlist from Redis');
@@ -150,7 +150,7 @@ class MusicPlayer extends Module {
   }
 
   queueSave(guildId, record, cb) {
-    redisClient.rpush(`cardinal.${guildId}:music_queue`, JSON.stringify(record), (err) => {
+    this.redisClient.rpush(`cardinal.${guildId}:music_queue`, JSON.stringify(record), (err) => {
       if (err) {
         this.logger.debug('error saving to redis', err, err.stack);
         m.channel.sendMessage('An error occurred saving the queue request to Redis');
@@ -192,7 +192,7 @@ class MusicPlayer extends Module {
     const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
 
     return new Promise((resolve, reject) => {
-      redisClient.lpop(`cardinal.${guild.id}:music_queue`, (err, reply) => {
+      this.redisClient.lpop(`cardinal.${guild.id}:music_queue`, (err, reply) => {
         if (err) {
           this.logger.debug('error getting next item from redis', err.stack);
           return;
@@ -255,7 +255,7 @@ class MusicPlayer extends Module {
     const key = `cardinal.${guild.id}:music_queue`;
 
     return new Promise((resolve, reject) => {
-      redisClient.llen(key, (err, len) => {
+      this.redisClient.llen(key, (err, len) => {
         this.logger.debug(`redis ${key}`, len, err);
 
         if (this.currentlyPlaying === null && len > 0) {
