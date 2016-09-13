@@ -3,31 +3,32 @@
 const https = require('https');
 const url = require('url');
 
-const debug = require('debug')('cardinal:nicehash');
+const Module = require('../Core/API/Module');
+const Settings = require('../settings');
 
-const Actions = require('./actions');
-const Dispatcher = require('./dispatcher');
-const Settings = require('./settings');
+class Nicehash extends Module {
+  constructor(container) {
+    super(container);
 
-class Nicehash {
-  constructor() {
-    Dispatcher.on(Actions.NICEHASH_DISPLAY, this.display.bind(this));
+    this.hears(/nice/i, this.display.bind(this));
+
+    //Dispatcher.on(Actions.NICEHASH_DISPLAY, this.display.bind(this));
   }
 
   display(m) {
-    debug('NICEHASH_DISPLAY');
+    this.logger.debug('NICEHASH_DISPLAY');
 
     const reqUrl = `https://www.nicehash.com/api?method=stats.provider&location=1&addr=${Settings.NICEHASH_ADDRESS}`;
     const parsed = url.parse(reqUrl);
     const req = https.get(parsed);
 
     req.once('response', (res) => {
-      debug(`have response: ${res.statusCode}`);
+      this.logger.debug(`have response: ${res.statusCode}`);
 
       let chunks = [];
 
       if (res.statusCode !== 200) {
-        debug('bailing out, non-200 status code');
+        this.logger.debug('bailing out, non-200 status code');
         m.reply('Error code for response');
         return;
       }
@@ -40,7 +41,7 @@ class Nicehash {
         try {
           data = JSON.parse(text);
         } catch (e) {
-          debug('error decoding json', e);
+          this.logger.debug('error decoding json', e);
           m.reply('Error decoding JSON payload');
           return;
         }
@@ -66,4 +67,4 @@ class Nicehash {
   }
 }
 
-module.exports = new Nicehash();
+module.exports = Nicehash;
