@@ -4,7 +4,11 @@ debug.enable('hubot*,cardinal*');
 
 const Main = require('./Core/Main');
 
-Main.initialize();
+const Queue = require('./modules/queue');
+
+Main.initialize({
+  modules: [Queue /* , Nicehash, Status */ ]
+});
 
 //require('./icy.js');
 //require('./mpd.js');
