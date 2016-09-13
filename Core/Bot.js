@@ -102,8 +102,8 @@ class Bot {
   }
 
   onCommandError(m, err) {
-    this.logger.error(`Error processing command: ${e && e.stack}`);
-    m.channel.sendMessage(`${m.author.mention} Oops. An error occurred handling that command.\n\`\`\`${e.stack}\`\`\``);
+    this.logger.error(`Error processing command: ${err && err.stack}`);
+    m.reply(`Oops. An error occurred handling that command.\n\`\`\`${err.stack}\`\`\``);
   }
 
   onMessageCreate(e) {
