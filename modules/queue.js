@@ -5,9 +5,6 @@ const fs = require('fs');
 const Command = require('../Core/API/Command');
 const Module = require('../Core/API/Module');
 
-const Actions = require('../actions');
-const Dispatcher = require('../dispatcher');
-
 const Types = require('../queue/types');
 const Utils = require('../queue/utils');
 const QueuedMedia = require('../queue/queued-media');
@@ -16,6 +13,7 @@ class MusicPlayer extends Module {
   constructor(container) {
     super(container);
 
+    this.bot = this.container.get('bot');
     this.redisClient = this.container.get('redisBrain');
 
     this.currentlyPlaying = null;
@@ -25,17 +23,10 @@ class MusicPlayer extends Module {
 
     this.hears(/np/i, this.onNowPlaying.bind(this));
     this.hears(/li/i, this.onDisplayPlaylist.bind(this));
+    this.hears(/queue/i, this.queueItem.bind(this));
+    this.hears(/next/i, this.skipSong.bind(this));
 
-    //this.registerCommands([
-    //  new Command(this, 'np', this.onNowPlaying),
-    //  new Command(this, 'li', this.onDisplayPlaylist),
-    //]);
-
-    //Dispatcher.on(Actions.QUEUE_DISPLAY_NOW_PLAYING, this.onNowPlaying.bind(this));
-    //Dispatcher.on(Actions.QUEUE_DISPLAY_PLAYLIST, this.onDisplayPlaylist.bind(this));
-    //Dispatcher.on(Actions.QUEUE_ITEM, this.queueItem.bind(this));
-    //Dispatcher.on(Actions.QUEUE_SKIP, this.skipSong.bind(this));
-    //Dispatcher.on(Actions.QUEUE_DONE_ITEM, this.queuedDonePlaying.bind(this));
+    QueuedMedia.initialize(this.container);
   }
 
   getRedisKey(guildId) {
@@ -93,7 +84,9 @@ class MusicPlayer extends Module {
     });
   }
 
-  queueItem(m, url) {
+  queueItem(m, args) {
+    const url = args.join(' ');
+
     this.logger.debug('QUEUE_ITEM', url);
     if (!url) {
       this.logger.debug('no valid url');
@@ -274,7 +267,7 @@ class MusicPlayer extends Module {
 
   queuedDonePlaying(queued) {
     if (queued === this.currentlyPlaying) {
-      const guild = client.Guilds.get(queued.guildId);
+      const guild = this.bot.client.Guilds.get(queued.guildId);
 
       this.currentlyPlaying = null;
       this.handleQueued(guild);
