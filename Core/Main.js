@@ -21,7 +21,6 @@ class Main {
     this.loadedModules = null;
 
     this.buildContainer();
-    this.setupLogger();
     this.run();
   }
 
@@ -34,6 +33,9 @@ class Main {
 
   buildContainer() {
     this.container = new Map();
+
+    this.setupLogger();
+    this.setupBrain();
 
     this.commandManager = new CommandManager(this.container);
     this.container.set('commandManager', this.commandManager);
@@ -50,10 +52,24 @@ class Main {
     this.container.set('logger', this.logger);
   }
 
-  run() {
-    console.log(chalk.blue(`\n\n\t${this.packageOptions.name} v${this.packageOptions.version} - by ${this.packageOptions.author}\n\n`));
+  setupBrain() {
+    const RedisBrain = require('./Brain/Redis');
 
+    this.brain = new RedisBrain();
+    this.container.set('redisBrain', this.brain);
+  }
+
+  loadClient() {
+    this.logger.info('Main::loadClient()');
+
+    this.bot = require('./Bot')(this.container);
+    this.container.set('bot', this.bot);
+  }
+
+  loadModules() {
     const { modules } = this.options;
+
+    this.logger.info('Main::loadModules()');
 
     for (const module of modules) {
       if (!(module.prototype instanceof Module)) {
@@ -65,7 +81,23 @@ class Main {
 
       const moduleInstance = new (module)(this.container);
       this.loadedModules.set(module.name, moduleInstance);
+
+      this.logger.info(`Initialized ${module.name}`);
     }
+  }
+
+  run() {
+    console.log(chalk.blue(`\n\n\t${this.packageOptions.name} v${this.packageOptions.version} - by ${this.packageOptions.author}\n\n`));
+
+    if (this.options.prefix) {
+      this.logger.info(`Set command prefix to '${this.options.prefix}'`);
+      this.commandManager.setPrefix(this.options.prefix);
+    }
+
+    this.loadClient();
+    this.loadModules();
+
+    this.bot.start();
   }
 }
 
