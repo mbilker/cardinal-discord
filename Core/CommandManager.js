@@ -37,6 +37,8 @@ class CommandManager {
 
     const func = this._commands[name];
     if (func) {
+      this.logger.debug(`found registered command for ${name}`);
+
       let res = null;
       try {
         res = func(msg, args.slice(1));
