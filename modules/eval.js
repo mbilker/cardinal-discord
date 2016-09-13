@@ -13,9 +13,7 @@ class EvalCommand extends Module {
     this.hears(/^eval/i, this.onEvalCommand.bind(this));
   }
 
-  onEvalCommand(m) {
-    const args = [];
-
+  onEvalCommand(m, args) {
     if (m.author.id !== '142098955818369024') {
       this.logger.info(`User ${m.author.username} (${m.author.id}) tried to eval ${args}`);
       m.channel.sendMessage(`${m.author.mention} You are not authorized to perform this action.`);
