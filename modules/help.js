@@ -4,6 +4,8 @@ const Module = require('../Core/API/Module');
 
 const helpCommandMap = require('../helpText.json');
 
+const HEADER = 'This is *Cardinal*. A general purpose robot.\n\n';
+
 class HelpCommand extends Module {
   constructor(container) {
     super(container);
@@ -19,7 +21,7 @@ class HelpCommand extends Module {
       `- ${prefix}${cmd}\n  ${helpCommandMap[cmd] || 'no text available'}`
     ).join('\n');
 
-    m.channel.sendMessage('```' + lines + '```');
+    m.channel.sendMessage(HEADER + '```\nCommands:\n' + lines + '```');
   }
 }
 
