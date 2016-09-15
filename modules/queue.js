@@ -166,6 +166,11 @@ class MusicPlayer extends Module {
   }
 
   skipSong(m) {
+    if (m.author.id !== '142098955818369024') {
+      m.reply(`You are not authorized to perform this action.`);
+      return;
+    }
+
     if (!this.currentlyPlaying) {
       m.channel.sendMessage('No currently playing song');
       return;
