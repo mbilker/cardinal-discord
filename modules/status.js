@@ -22,6 +22,8 @@ Cardinal System Info:
 CPU:    | ${cpu.model}
 SPEED:  | ${cpu.speed / 1000} GHz
 MEMORY: | ${mem} GB
+
+Node.js Version: ${process.version}
 \`\`\``);
   }
 
