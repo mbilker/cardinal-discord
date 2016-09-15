@@ -45,7 +45,7 @@ class Bot {
     // TODO: implement this.onConnected
     channel.join()
       .then(info => this.onConnected(info))
-      .catch(err => console.log(`Failed to connect to ${channelName}`));
+      .catch(err => this.logger.warn(`Failed to connect to ${channelName}`));
   }
 
   onGatewayReady(e) {
@@ -54,16 +54,16 @@ class Bot {
     this.primaryGuild = this.client.Guilds.getBy('name', Settings.SERVER_NAME);
 
     if (this.primaryGuild) {
-      this.logger.debug('Found correct server!');
+      this.logger.info('Found correct server!');
       //Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
     } else {
-      this.logger.debug('Guild not found!');
+      this.logger.warn('Guild not found!');
       //shutdownCb();
     }
   }
 
   onVoiceDisconnected(e) {
-    this.logger.debug('Disconnected from voice server', e.error);
+    this.logger.info('Disconnected from voice server', e.error);
 
     if (e.endpointAwait) {
       // handle reconnect instantly if it's a server-switch disconnect
@@ -94,11 +94,11 @@ class Bot {
     const sdelay = Math.floor(delay / 100) / 10;
 
     if (e.error.message.indexOf('gateway') !== -1) {
-      this.logger.debug(`Disconnected from gw, resuming in ${sdelay} seconds`);
+      this.logger.info(`Disconnected from gw, resuming in ${sdelay} seconds`);
     } else {
-      this.logger.debug(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
+      this.logger.warn(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
     }
-    setTimeout(this.start, delay);
+    setTimeout(this.start.bind(this), delay);
   }
 
   onCommandError(m, err) {
