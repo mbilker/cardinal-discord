@@ -13,6 +13,12 @@ class Module {
 
     this.commandManager.add(this, cmd.toString().split('/')[1], func);
   }
+
+  listens(cmd, func) {
+    this.logger.debug(`${this.constructor.name} registered ${cmd} with ${func.name}`);
+
+    this.commandManager.add(this, cmd, func, true);
+  }
 }
 
 module.exports = Module;
