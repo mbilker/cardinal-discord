@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 
-const Command = require('../Core/API/Command');
 const Module = require('../Core/API/Module');
 
 const Types = require('../queue/types');
