@@ -112,13 +112,13 @@ class Bot {
   onMessageCreate(e) {
     if (!e.message.content) return;
 
-    const m = e.message;
-    const c = m.content.toLowerCase();
+    //const m = e.message;
+    //const c = m.content.toLowerCase();
 
-    if (c === 'ping' && m.author.id !== this.client.User.id) {
-      e.message.channel.sendMessage('pong');
-    } else if (c === 'pong' && m.author.id !== this.client.User.id) {
-      e.message.channel.sendMessage('ping');
+    //if (c === 'ping' && m.author.id !== this.client.User.id) {
+    //  e.message.channel.sendMessage('pong');
+    //} else if (c === 'pong' && m.author.id !== this.client.User.id) {
+    //  e.message.channel.sendMessage('ping');
     //} else if (c === '`help') {
     //  e.message.channel.sendMessage(helpText);
     //} else if (c === '`sys' || c === '`sysinfo') {
@@ -129,9 +129,9 @@ class Bot {
     //  Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
     //} else if (c === '`leave') {
     //  Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
-    }
+    //}
 
-    this.commandManager.handle(m, (err) => this.onCommandError(m, err));
+    this.commandManager.handle(e.message, (err) => this.onCommandError(e.message, err));
   }
 }
 
