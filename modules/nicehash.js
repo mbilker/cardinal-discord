@@ -11,8 +11,6 @@ class Nicehash extends Module {
     super(container);
 
     this.hears(/nice/i, this.display.bind(this));
-
-    //Dispatcher.on(Actions.NICEHASH_DISPLAY, this.display.bind(this));
   }
 
   display(m) {
