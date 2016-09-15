@@ -52,7 +52,6 @@ class Bot {
 
     if (this.primaryGuild) {
       this.logger.info('Found correct server!');
-      //Dispatcher.emit(Actions.DISCORD_FOUND_CORRECT_SERVER, guild);
     } else {
       this.logger.warn('Guild not found!');
       //shutdownCb();
@@ -107,9 +106,7 @@ class Bot {
     if (!e.message.content) return;
 
     const m = e.message;
-    const content = m.content;
-    const c = content.toLowerCase();
-    //const args = content.split(' ').filter(x => x.length);
+    const c = m.content.toLowerCase();
 
     if (c === 'ping' && m.author.id !== this.client.User.id) {
       e.message.channel.sendMessage('pong');
@@ -121,18 +118,10 @@ class Bot {
     //  Dispatcher.emit(Actions.STATUS_SYS_INFO, m);
     //} else if (c === '`user' || c === '`userinfo') {
     //  Dispatcher.emit(Actions.STATUS_USER_INFO, m);
-    //} else if (c === '`nicehash') {
-    //  Dispatcher.emit(Actions.NICEHASH_DISPLAY, m);
     //} else if (c === '`summon') {
     //  Dispatcher.emit(Actions.START_MUSIC_PLAYBACK, e);
     //} else if (c === '`leave') {
     //  Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
-    //} else if (e.message.author.id === '142098955818369024' && c === '`next') {
-    //  Dispatcher.emit(Actions.QUEUE_SKIP, m);
-    //} else if (args[0].toLowerCase() === '`queue') {
-    //  Dispatcher.emit(Actions.QUEUE_ITEM, m, args.slice(1).join(' '));
-    //} else if (e.message.author.id === '142098955818369024' && args[0].toLowerCase() === '`eval') {
-    //  executeJS(m, args);
     }
 
     this.commandManager.handle(m, (err) => this.onCommandError(m, err));
