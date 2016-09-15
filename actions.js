@@ -10,24 +10,6 @@ const Actions = keyMirror({
   ICY_CONNECTED: null,
   ICY_METADATA: null,
 
-  SET_AUDIO_VOLUME: null,
-
-  NOW_PLAYING_SONG: null,
-  NEXT_SONG: null,
-  PREVIOUS_SONG: null,
-  PAUSE_SONG: null,
-  RESUME_SONG: null,
-  PLAY_PLAYLIST_POSITION: null,
-  DISPLAY_PLAYLIST: null,
-
-  QUEUE_DISPLAY_NOW_PLAYING: null,
-  QUEUE_DISPLAY_PLAYLIST: null,
-  QUEUE_ITEM: null,
-  QUEUE_SKIP: null,
-  QUEUE_DONE_ITEM: null,
-
-  NICEHASH_DISPLAY: null,
-
   STATUS_SYS_INFO: null,
   STATUS_USER_INFO: null,
 });
