@@ -3,11 +3,8 @@
 const os = require('os');
 const util = require('util');
 
-//const debug = require('debug')('cardinal:discord');
 const Discordie = require('discordie');
 
-//const Actions = require('./actions');
-//const Dispatcher = require('./dispatcher');
 const Settings = require('../settings');
 
 const oath = require('../hubot_oath.json');
