@@ -1,5 +1,7 @@
 "use strict";
 
+const util = require('util');
+
 class CommandManager {
   constructor(container) {
     this.container = container;
@@ -8,6 +10,7 @@ class CommandManager {
     this.logger = container.get('logger');
 
     this._commands = {};
+    this._listeners = new Map();
     this._prefix = null;
   }
 
@@ -19,17 +22,18 @@ class CommandManager {
     this._prefix = prefix;
   }
 
-  add(mod, cmd, func) {
-    this._commands[cmd] = func;
+  add(mod, cmd, func, withNoPrefix) {
+    if (withNoPrefix) {
+      this._listeners.set(cmd, func);
+    } else {
+      this._commands[cmd] = func;
+    }
   }
 
-  /**
-   * Precondition: msg != null, msg.content != null
-   */
-  handle(msg, errCb) {
+  handleCommands(msg, errCb) {
     const content = msg.content.trim();
 
-    if (msg.author.id === this.bot.client.User.id || !content.startsWith(this._prefix)) {
+    if (!content.startsWith(this._prefix)) {
       return false;
     }
 
@@ -51,9 +55,42 @@ class CommandManager {
       } catch (err) {
         errCb(err);
       }
+
+      return res;
     }
 
     return false;
+  }
+
+  handleListeners(msg, errCb) {
+    const content = msg.content.trim();
+
+    this.logger.debug(`Handling ${util.format(content)}`);
+
+    for (const arr of this._listeners) {
+      const cmd = arr[0];
+      const func = arr[1];
+      const contentMatches = cmd.test(content);
+
+      if (contentMatches) {
+        this.logger.debug(`${cmd} matches content`);
+
+        try {
+          func(msg);
+        } catch (err) {
+          errCb(err);
+        }
+      }
+    }
+  }
+
+  handle(msg, errCb) {
+    if (msg.author.id === this.bot.client.User.id) {
+      return false;
+    }
+
+    this.handleListeners(msg, errCb);
+    return this.handleCommands(msg, errCb);
   }
 }
 
