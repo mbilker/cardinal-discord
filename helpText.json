@@ -1,0 +1,6 @@
+{
+  "np": "Displays information about the currently playing song.",
+  "li": "Displays current song playlist.",
+  "queue": "Adds a song to current song playlist using a YouTube video URL.",
+  "next": "(auth) Skips to next song in current song playlist."
+}
