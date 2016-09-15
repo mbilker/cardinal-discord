@@ -155,17 +155,6 @@ const helpText = `This is *Cardinal*. A general purpose robot.
 Commands:
 - ping|pong
   Simple ping and pong to see if bot is responding
-- \`play
-  Resume and play a song in the playlist.
-- \`pause
-  Pause the music until reenabling.
-- \`next
-  Play the next song in the playlist.
-  If the song is the last song in the playlist, then Cardinal will wrap around to the beginning of the playlist.
-- \`np
-  Displays information about the currently playing song.
-- \`li
-  Displays 25 entries from current playlist from the current song.
 \`\`\``;
 
 /*
