@@ -1,14 +1,18 @@
 "use strict";
 
-//const debug = require('debug')('cardinal:command-manager');
-
 class CommandManager {
   constructor(container) {
     this.container = container;
+
+    this.bot = null;
     this.logger = container.get('logger');
 
     this._commands = {};
     this._prefix = null;
+  }
+
+  botReady() {
+    this.bot = this.container.get('bot');
   }
 
   setPrefix(prefix) {
@@ -25,7 +29,9 @@ class CommandManager {
   handle(msg, errCb) {
     const content = msg.content.trim();
 
-    if (!content.startsWith(this._prefix)) return false;
+    if (msg.author.id === this.bot.client.User.id || !content.startsWith(this._prefix)) {
+      return false;
+    }
 
     this.logger.debug(`handling ${content}`);
 
