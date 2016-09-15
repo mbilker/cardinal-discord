@@ -39,9 +39,10 @@ class Bot {
 
     // this example will stop reconnecting after 1 attempt
     // you can continue trying to reconnect
+
     // TODO: implement this.onConnected
+    //  .then(info => this.onConnected(info))
     channel.join()
-      .then(info => this.onConnected(info))
       .catch(err => this.logger.warn(`Failed to connect to ${channelName}`));
   }
 
@@ -54,7 +55,6 @@ class Bot {
       this.logger.info('Found correct server!');
     } else {
       this.logger.warn('Guild not found!');
-      //shutdownCb();
     }
   }
 
@@ -89,11 +89,18 @@ class Bot {
     const delay = 5000;
     const sdelay = Math.floor(delay / 100) / 10;
 
+    // This shouldn't happen according to Discordie docs, but just to make sure
+    if (this.container.get('shutdownMode')) {
+      this.logger.info(`Disconnected from gw, not reconnecting because of shutdown mode`);
+      return;
+    }
+
     if (e.error.message.indexOf('gateway') !== -1) {
       this.logger.info(`Disconnected from gw, resuming in ${sdelay} seconds`);
     } else {
       this.logger.warn(`Failed to log in or get gateway, reconnecting in ${sdelay} seconds`);
     }
+
     setTimeout(this.start.bind(this), delay);
   }
 

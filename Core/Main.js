@@ -21,17 +21,29 @@ class Main {
 
     this.buildContainer();
     this.run();
+    this.buildRepl();
   }
 
   buildRepl() {
     this.repl = require('repl').start('> ');
+    this.initializeReplContext(this.repl.context);
 
-    this.repl.context.Module = Module;
-    this.repl.context.CommandManager = CommandManager;
+    this.repl.on('reset', this.initializeReplContext.bind(this));
+    this.repl.on('exit', this.shutdown.bind(this));
+  }
+
+  initializeReplContext(context) {
+    context.Module = Module;
+    context.CommandManager = CommandManager;
+
+    context.main = this;
+    context.container = this.container;
   }
 
   buildContainer() {
     this.container = new Map();
+
+    this.container.set('shutdownMode', false);
 
     this.setupLogger();
     this.setupBrain();
@@ -96,6 +108,14 @@ class Main {
     this.loadModules();
 
     this.bot.start();
+  }
+
+  shutdown() {
+    this.logger.info('Main::shutdown()');
+
+    this.container.set('shutdownMode', true);
+    this.bot.client.disconnect();
+    process.exit();
   }
 }
 
