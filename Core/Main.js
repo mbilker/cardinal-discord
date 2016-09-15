@@ -4,7 +4,6 @@ const path = require('path');
 
 const chalk = require('chalk');
 
-const Command = require('./API/Command');
 const CommandManager = require('./CommandManager.js');
 const Module = require('./API/Module');
 
@@ -26,8 +25,8 @@ class Main {
 
   buildRepl() {
     this.repl = require('repl').start('> ');
+
     this.repl.context.Module = Module;
-    this.repl.context.Command = Command;
     this.repl.context.CommandManager = CommandManager;
   }
 
