@@ -61,6 +61,8 @@ class Main {
 
     this.bot = require('./Bot')(this.container);
     this.container.set('bot', this.bot);
+
+    this.commandManager.botReady();
   }
 
   loadModules() {
