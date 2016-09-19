@@ -8,8 +8,8 @@ class PingPong extends Module {
 
     this.bot = container.get('bot');
 
-    this.listens(/ping/i, this.onPing.bind(this));
-    this.listens(/pong/i, this.onPong.bind(this));
+    this.listens(/^ping/i, this.onPing.bind(this));
+    this.listens(/^pong/i, this.onPong.bind(this));
   }
 
   onPing(m) {
