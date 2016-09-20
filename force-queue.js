@@ -37,7 +37,12 @@ const promise = Promise.all(files.map(url => {
   };
 
   return new Promise((resolve, reject) => {
-    musicPlayer.queueSave(oath.mainGuildId, record, resolve);
+    musicPlayer.queueSave(oath.mainGuildId, record, (err, res) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(res);
+    });
   });
 }));
 
