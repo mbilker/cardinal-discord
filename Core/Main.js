@@ -115,7 +115,9 @@ class Main {
 
     this.container.set('shutdownMode', true);
     this.bot.client.disconnect();
-    process.exit();
+    this.brain.quit();
+
+    //process.exit();
   }
 }
 
