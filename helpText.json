@@ -1,6 +1,12 @@
 {
+  "eval": "(auth) Evaluates given javascript code.",
+  "help": "Command list and short description of each command.",
+  "math": "Evaluate a given math expression.",
+  "nice": "Retrieves status of cryptocurrency miner from Nicehash.",
   "np": "Displays information about the currently playing song.",
   "li": "Displays current song playlist.",
   "queue": "Adds a song to current song playlist using a YouTube video URL.",
-  "next": "(auth) Skips to next song in current song playlist."
+  "next": "(auth) Skips to next song in current song playlist.",
+  "sysinfo": "Displays information about Cardinal's system specs and Node.js version.",
+  "userinfo": "Prints out JSON representation of calling user."
 }
