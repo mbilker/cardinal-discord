@@ -1,6 +1,7 @@
 #!/usr/bin/node
 
 const fs = require('fs');
+const path = require('path');
 
 const MusicPlayer = require('./modules/queue');
 const Logger = require('./Core/Logger');
@@ -15,7 +16,7 @@ container.set('logger', new Logger());
 container.set('redisBrain', new RedisBrain());
 const musicPlayer = new MusicPlayer(container);
 
-const files = process.argv.slice(2);
+const files = process.argv.slice(2).map(url => path.resolve(url));
 
 //const flac = files.filter(file => file.endsWith('.flac'));
 //console.log(flac);
@@ -37,14 +38,13 @@ const promise = Promise.all(files.map(url => {
   };
 
   return new Promise((resolve, reject) => {
-    musicPlayer.queueSave(oath.mainGuildId, record, (err, res) => {
-      if (err) {
-        return reject(err);
-      }
+    musicPlayer.queueSave(oath.mainGuildId, record, (res) => {
       return resolve(res);
     });
   });
 }));
+
+console.log(promise);
 
 promise.then(() => {
   console.log('all done');
@@ -52,4 +52,4 @@ promise.then(() => {
   container.get('redisBrain').quit();
 }).catch((err) => {
   console.log(err);
-});;
+});
