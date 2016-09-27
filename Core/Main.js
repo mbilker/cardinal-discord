@@ -96,6 +96,20 @@ class Main {
     }
   }
 
+  shutdownModules() {
+    this.logger.info('Main::shutdownModules()');
+
+    for (const [name, module] of this.loadedModules) {
+      if (module.shutdown && typeof(module.shutdown) === 'function') {
+        this.logger.info(`Shutting down ${module.constructor.name}`);
+
+        module.shutdown();
+
+        this.logger.info(`Shut down ${module.constructor.name}`);
+      }
+    }
+  }
+
   run() {
     console.log(chalk.blue(`\n\n\t${this.packageOptions.name} v${this.packageOptions.version} - by ${this.packageOptions.author}\n\n`));
 
@@ -114,6 +128,8 @@ class Main {
     this.logger.info('Main::shutdown()');
 
     this.container.set('shutdownMode', true);
+    this.shutdownModules();
+
     this.bot.client.disconnect();
     this.brain.quit();
 
