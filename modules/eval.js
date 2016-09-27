@@ -25,7 +25,7 @@ class EvalCommand extends Module {
     this.logger.debug(`EXECUTE_JS ${args}`);
 
     let res = null;
-    const text = args.slice(1).join(' ');
+    const text = args.join(' ');
 
     this.logger.debug(`EXECUTE_JS 2 ${text}`);
 
