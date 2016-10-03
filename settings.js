@@ -7,6 +7,6 @@ module.exports = Object.freeze({
   NICEHASH_ADDRESS: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 
   MPD_HOST: 'localhost',
-  MOD_PORT: 6600,
+  MPD_PORT: 6600,
   MPD_BASE_DIRECTORY: '/storage/media/mpd',
 });
