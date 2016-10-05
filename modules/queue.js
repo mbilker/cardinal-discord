@@ -1,10 +1,14 @@
 "use strict";
 
 const fs = require('fs');
+const path = require('path');
+const util = require('util');
 
 const Module = require('../Core/API/Module');
+const Settings = require('../settings');
 
 const Types = require('../queue/types');
+const LocalMusicSearch = require('../queue/search');
 const Utils = require('../queue/utils');
 const QueuedMedia = require('../queue/queued-media');
 
@@ -15,8 +19,11 @@ class MusicPlayer extends Module {
     this.bot = this.container.get('bot');
     this.redisClient = this.container.get('redisBrain');
 
+    this.search = new LocalMusicSearch(this.container);
+
     this.currentlyPlaying = null;
     this.voiceConnection = null;
+    this.recordCache = new Map();
 
     this.QueuedMedia = QueuedMedia;
 
@@ -24,12 +31,18 @@ class MusicPlayer extends Module {
     this.hears(/li/i, this.onDisplayPlaylist.bind(this));
     this.hears(/queue/i, this.queueItem.bind(this));
     this.hears(/next/i, this.skipSong.bind(this));
+    this.hears(/search/i, this.onSearch.bind(this));
+    this.hears(/sel/i, this.onSelectSearchResult.bind(this));
 
     QueuedMedia.initialize(this.container);
   }
 
-  getRedisKey(guildId) {
-    return `cardinal.${guildId}:music_queue`;
+  shutdown() {
+    this.search.shutdown();
+  }
+
+  getRedisKey(guildId, scope) {
+    return `cardinal.${guildId}.${scope}`;
   }
 
   onNowPlaying(m) {
@@ -43,7 +56,7 @@ class MusicPlayer extends Module {
 
   onDisplayPlaylist(m) {
     this.logger.debug('QUEUE_DISPLAY_PLAYLIST');
-    const key = this.getRedisKey(m.guild.id);
+    const key = this.getRedisKey(m.guild.id, 'music_queue');
     let msg = '';
 
     this.redisClient.llen(key, (err, len) => {
@@ -89,8 +102,7 @@ class MusicPlayer extends Module {
     this.logger.debug('QUEUE_ITEM', url);
     if (!url) {
       this.logger.debug('no valid url');
-      m.channel.sendMessage(`${m.author.mention} Please give me a URL to play`);
-      return;
+      return m.reply('Please give me a URL to play');
     }
 
     Utils.fetchYoutubeInfo(url).then((arr) => {
@@ -111,7 +123,7 @@ class MusicPlayer extends Module {
         formats,
       };
 
-      this.queueSave(m.guild.id, record, this.afterRedisSave.bind(this, m));
+      return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
     }).catch((err) => {
       if (err) {
         this.logger.debug('error pulling youtube data', err.stack);
@@ -135,28 +147,67 @@ class MusicPlayer extends Module {
             info,
           };
 
-          this.queueSave(m.guild.id, record, this.afterRedisSave.bind(this, m));
+          return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
         }
+
+        return Promise.reject(err2);
       });
     });
   }
 
-  queueSave(guildId, record, cb) {
-    this.redisClient.rpush(`cardinal.${guildId}:music_queue`, JSON.stringify(record), (err) => {
-      if (err) {
-        this.logger.debug('error saving to redis', err, err.stack);
-        m.channel.sendMessage('An error occurred saving the queue request to Redis');
-        return;
-      }
+  queueSave(guildId, record) {
+    const redisKey = this.getRedisKey(guildId, 'music_queue');
 
+    return this.redisClient.rpushAsync(redisKey, JSON.stringify(record)).then(() => {
       this.logger.debug('saved to redis');
 
-      cb(record);
+      return record;
+    });
+  }
+
+  onSearch(m, args) {
+    const text = args.join(' ');
+
+    return this.search.byAnyField(text).then((results) =>
+      results.slice(0, 5).map((entry) =>
+        path.join(Settings.MPD_BASE_DIRECTORY, entry.file)
+      )
+    ).then((entries) => {
+      const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+      this.redisClient.set(redisKey, JSON.stringify(entries));
+
+      return m.reply(entries.join('\n'));
+    }).catch((err) => {
+      m.reply(`There was an error:\n${err.stack}`);
+    });
+  }
+
+  onSelectSearchResult(m, args) {
+    if (args < 1) {
+      return m.reply('Please supply an index to play from search results');
+    }
+
+    const index = parseInt(args[0]);
+
+    if (isNaN(index) || index < 1) {
+      return m.reply('Please supply a valid index');
+    }
+
+    const position = index - 1;
+    const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+
+    return this.redisClient.getAsync(redisKey).then((result) => {
+      if (!result) {
+        return m.reply('There is no previous search query');
+      }
+      const entries = JSON.parse(result);
+
+      return this.queueItem(m, [entries[position]]);
     });
   }
 
   afterRedisSave(m) {
-    this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
+    return this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
       this.logger.debug('queueSave promise resolve', !!printString);
       if (printString) m.channel.sendMessage(`Added ${printString}`);
     }).catch((err) => {
@@ -166,78 +217,64 @@ class MusicPlayer extends Module {
 
   skipSong(m) {
     if (m.author.id !== '142098955818369024') {
-      m.reply(`You are not authorized to perform this action.`);
-      return;
+      return m.reply(`You are not authorized to perform this action.`);
     }
 
     if (!this.currentlyPlaying) {
-      m.channel.sendMessage('No currently playing song');
-      return;
+      return m.channel.sendMessage('No currently playing song');
     } else if (!this.currentlyPlaying.stream) {
-      m.channel.sendMessage('For some reason this song does not have a stream associated with it');
-      return;
+      return m.channel.sendMessage('For some reason this song does not have a stream associated with it');
     }
 
     this.currentlyPlaying.stopPlaying();
     this.currentlyPlaying = null;
-    this.handleQueued(m.guild);
+    return this.handleQueued(m.guild);
   }
 
   playNext(guild, author, channel) {
     this.logger.debug('playNext');
 
     const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
+    const redisKey = this.getRedisKey(guild.id, 'music_queue');
 
-    return new Promise((resolve, reject) => {
-      this.redisClient.lpop(`cardinal.${guild.id}:music_queue`, (err, reply) => {
-        if (err) {
-          this.logger.debug('error getting next item from redis', err.stack);
-          return;
-        }
+    return this.redisClient.lpopAsync(redisKey).then(JSON.parse).then((record) => {
+      const next = new QueuedMedia(this, record || {});
+      this.currentlyPlaying = next;
 
-        let record = null;
-        try {
-          record = JSON.parse(reply);
-        } catch (err) {
-          this.logger.debug('error parsing Redis response', err, reply);
-          return;
-        }
+      if (!authorVoiceChannel && channel) {
+        channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
 
-        const next = new QueuedMedia(this, record || {});
-        this.currentlyPlaying = next;
+        this.queuedDonePlaying(this.currentlyPlaying);
 
-        if (!authorVoiceChannel && channel) {
-          channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
+        return false;
+      } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
+        this.currentlyPlaying.play(this.voiceConnection);
+      } else {
+        return authorVoiceChannel.join(false, false).then((info) => {
+          this.logger.debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
 
-          this.queuedDonePlaying(this.currentlyPlaying);
+          this.voiceConnection = info.voiceConnection;
 
-          return resolve(false);
-        } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
           this.currentlyPlaying.play(this.voiceConnection);
-        } else {
-          return authorVoiceChannel.join(false, false).then((info) => {
-            this.logger.debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
 
-            this.voiceConnection = info.voiceConnection;
+          return this.currentlyPlaying.printString();
+        }).catch((err) => {
+          this.logger.debug('failed to join voice chat', err, err.stack);
 
-            this.currentlyPlaying.play(this.voiceConnection);
+          if (err.message === 'Missing permission' && authorVoiceChannel) {
+            channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
+          }
 
-            resolve(this.currentlyPlaying.printString());
-          }).catch((err) => {
-            this.logger.debug('failed to join voice chat', err, err.stack);
+          return this.queuedDonePlaying(this.currentlyPlaying);
+        });
+      }
 
-            if (err.message === 'Missing permission' && authorVoiceChannel) {
-              channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
-            }
-
-            this.queuedDonePlaying(this.currentlyPlaying);
-
-            resolve(false);
-          });
-        }
-
-        return resolve(this.currentlyPlaying.printString());
-      });
+      return this.currentlyPlaying.printString();
+    }).catch((err) => {
+      if (err) {
+        this.logger.debug('error getting next item from redis', err.stack);
+      }
+      throw err;
     });
   }
 
@@ -249,11 +286,11 @@ class MusicPlayer extends Module {
       return;
     }
 
-    const key = `cardinal.${guild.id}:music_queue`;
+    const redisKey = this.getRedisKey(guild.id, 'music_queue');
 
     return new Promise((resolve, reject) => {
-      this.redisClient.llen(key, (err, len) => {
-        this.logger.debug(`redis ${key}`, len, err);
+      this.redisClient.llen(redisKey, (err, len) => {
+        this.logger.debug(`redis ${redisKey}`, len, err);
 
         if (this.currentlyPlaying === null && len > 0) {
           return this.playNext(guild, author, channel).then(resolve, reject);
