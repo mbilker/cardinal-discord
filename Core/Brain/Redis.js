@@ -2,6 +2,8 @@
 
 const Redis = require('redis');
 
+const promisify = require('../promisify');
+
 class RedisBrain {
   constructor(url) {
     //if (!url) {
@@ -13,6 +15,11 @@ class RedisBrain {
     client.on('error', (err) => {
       console.log('redis error:', err);
     });
+
+    promisify(client, 'set');
+    promisify(client, 'get');
+    promisify(client, 'rpush');
+    promisify(client, 'lpop');
 
     return client;
   }
