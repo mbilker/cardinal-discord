@@ -56,10 +56,17 @@ class CommandManager {
         errCb(err);
       }
 
-      return res;
+      const promise = Promise.resolve(res).then((ret) => {
+        this.logger.debug(`${name} ret ${ret}`);
+      }).catch((err) => {
+        this.logger.error(`${name} threw error ${err.stack}`);
+        errCb(err);
+      });
+
+      return promise;
     }
 
-    return false;
+    return Promise.reject(new Error('no command match found'));
   }
 
   handleListeners(msg, errCb) {
@@ -75,10 +82,16 @@ class CommandManager {
       if (contentMatches) {
         this.logger.debug(`${cmd} matches content`);
 
+        let res = null;
         try {
-          func(msg);
+          res = Promise.resolve(func(msg)).then((ret) => {
+            this.logger.debug(`${cmd} ret ${ret}`);
+          }).catch((err) => {
+            this.logger.error(`${cmd} threw error ${err.stack}`);
+            errCb(err);
+          });
         } catch (err) {
-          errCb(err);
+          return errCb(err);
         }
       }
     }
