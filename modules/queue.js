@@ -206,12 +206,15 @@ class MusicPlayer extends Module {
     });
   }
 
-  afterRedisSave(m) {
+  afterRedisSave(m, record) {
     return this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
       this.logger.debug('queueSave promise resolve', !!printString);
-      if (printString) m.channel.sendMessage(`Added ${printString}`);
-    }).catch((err) => {
-      this.logger.debug('queueSave promise reject', err);
+      if (printString) {
+        m.channel.sendMessage(`Added ${printString}`);
+      } else {
+        const tempQueued = new QueuedMedia(this, record);
+        m.channel.sendMessage(`Added ${tempQueued.printString()}`);
+      }
     });
   }
 
@@ -301,7 +304,7 @@ class MusicPlayer extends Module {
           this.voiceConnection = null;
         }
 
-        return resolve(true);
+        return resolve();
       });
     });
   }
