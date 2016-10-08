@@ -1,6 +1,5 @@
 "use strict";
 
-//const https = require('https');
 const url = require('url');
 
 const debug = require('debug')('cardinal:queued-media');
@@ -12,7 +11,7 @@ const Utils = require('./utils');
 let logger = null;
 
 class QueuedMedia {
-  constructor(musicPlayer, record /* type, ownerId, guildId, info, formats */) {
+  constructor(musicPlayer, record) {
     this.musicPlayer = musicPlayer;
     this.type = record.type;
     this.ownerId = record.ownerId;
