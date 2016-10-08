@@ -177,8 +177,6 @@ class MusicPlayer extends Module {
       this.redisClient.set(redisKey, JSON.stringify(entries));
 
       return m.reply(entries.join('\n'));
-    }).catch((err) => {
-      m.reply(`There was an error:\n${err.stack}`);
     });
   }
 
