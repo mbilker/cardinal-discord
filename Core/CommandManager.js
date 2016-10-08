@@ -65,8 +65,6 @@ class CommandManager {
 
       return promise;
     }
-
-    return Promise.reject(new Error('no command match found'));
   }
 
   handleListeners(msg, errCb) {
