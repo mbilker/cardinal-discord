@@ -32,6 +32,7 @@ class MusicPlayer extends Module {
     this.hears(/queue/i, this.queueItem.bind(this));
     this.hears(/next/i, this.skipSong.bind(this));
     this.hears(/search/i, this.onSearch.bind(this));
+    this.hears(/yt/i, this.onYoutube.bind(this));
     this.hears(/sel/i, this.onSelectSearchResult.bind(this));
 
     QueuedMedia.initialize(this.container);
@@ -150,7 +151,7 @@ class MusicPlayer extends Module {
           return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
         }
 
-        return Promise.reject(err2);
+        this.logger.error('file access error', err2);
       });
     });
   }
@@ -169,14 +170,32 @@ class MusicPlayer extends Module {
     const text = args.join(' ');
 
     return this.search.byAnyField(text).then((results) =>
-      results.slice(0, 5).map((entry) =>
-        path.join(Settings.MPD_BASE_DIRECTORY, entry.file)
-      )
+      results.slice(0, 5).map((entry) => {
+        const filePath = path.join(Settings.MPD_BASE_DIRECTORY, entry.file);
+        return { id: filePath, title: entry.file };
+      })
     ).then((entries) => {
       const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
       this.redisClient.set(redisKey, JSON.stringify(entries));
 
-      return m.reply(entries.join('\n'));
+      const response = entries.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
+      return m.channel.sendMessage(response);
+    });
+  }
+
+  onYoutube(m, args) {
+    const text = args.join(' ');
+
+    return Utils.searchYoutube(text).then((results) => {
+      const useful = results.items.map((item) => {
+        return { id: item.id.videoId, title: item.snippet.title };
+      });
+
+      const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+      this.redisClient.set(redisKey, JSON.stringify(useful));
+
+      const response = useful.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
+      return m.channel.sendMessage(response);
     });
   }
 
@@ -200,7 +219,7 @@ class MusicPlayer extends Module {
       }
       const entries = JSON.parse(result);
 
-      return this.queueItem(m, [entries[position]]);
+      return this.queueItem(m, [entries[position].id]);
     });
   }
 

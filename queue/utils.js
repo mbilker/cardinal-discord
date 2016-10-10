@@ -1,6 +1,11 @@
 "use strict";
 
+const google = require('googleapis');
 const ytdl = require('ytdl-core');
+
+const youtube = google.youtube('v3');
+
+const apiKey = require('../google_api.json').apiKey;
 
 function sortFormats(a, b) {
   // anything towards the beginning of the array is -1, 1 to move it to the end
@@ -55,8 +60,20 @@ function fetchYoutubeInfo(url) {
   });
 };
 
+function searchYoutube(searchString) {
+  return new Promise((resolve, reject) => {
+    youtube.search.list({ key: apiKey, part: 'snippet', q: searchString, maxResults: 10 }, (err, results) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve(results);
+    });
+  });
+};
+
 module.exports = {
   sortFormats,
   formatTime,
   fetchYoutubeInfo,
+  searchYoutube,
 };

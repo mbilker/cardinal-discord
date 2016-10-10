@@ -1,6 +1,7 @@
 node_modules/
 logs/
 hubot_oath.json
+google_api.json
 
 node-v*.tar.xz
 node-v*
