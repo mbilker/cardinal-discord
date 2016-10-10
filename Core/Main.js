@@ -36,6 +36,8 @@ class Main {
     context.Module = Module;
     context.CommandManager = CommandManager;
 
+    context.Utils = require('../queue/utils');
+
     context.main = this;
     context.container = this.container;
   }
