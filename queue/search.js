@@ -38,6 +38,8 @@ class LocalMusicSearch {
       });
     }).then((result) => {
       return mpd.parseArrayMessage(result);
+    }).then((arr) => {
+      return arr.filter((element) => element.file);
     });
   }
 }
