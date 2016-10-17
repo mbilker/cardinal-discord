@@ -10,10 +10,12 @@ const Types = require('./queue/types');
 
 const oath = require('./hubot_oath.json');
 
+const redisBrain = new RedisBrain();
+
 const container = new Map();
 container.set('commandManager', { add: function() {} });
 container.set('logger', new Logger());
-container.set('redisBrain', new RedisBrain());
+container.set('redisBrain', redisBrain);
 const musicPlayer = new MusicPlayer(container);
 
 const files = process.argv.slice(2).map(url => path.resolve(url));
@@ -37,11 +39,7 @@ const promise = Promise.all(files.map(url => {
     info,
   };
 
-  return new Promise((resolve, reject) => {
-    musicPlayer.queueSave(oath.mainGuildId, record, (res) => {
-      return resolve(res);
-    });
-  });
+  return musicPlayer.queueSave(oath.mainGuildId, record);
 }));
 
 console.log(promise);
@@ -49,7 +47,11 @@ console.log(promise);
 promise.then(() => {
   console.log('all done');
 
-  container.get('redisBrain').quit();
+  redisBrain.quit();
+
+  // Search starts up shortly after this callback, schedule shutdown
+  // so there is no "write after end" error
+  setTimeout(() => musicPlayer.shutdown(), 500);
 }).catch((err) => {
   console.log(err);
 });
