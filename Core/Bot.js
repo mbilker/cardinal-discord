@@ -49,7 +49,7 @@ class Bot {
   onGatewayReady(e) {
     this.logger.info(`Connected as: ${this.client.User.username}`);
 
-    this.primaryGuild = this.client.Guilds.getBy('name', Settings.SERVER_NAME);
+    this.primaryGuild = this.client.Guilds.getBy('id', oath.mainGuildId);
 
     if (this.primaryGuild) {
       this.logger.info('Found correct server!');

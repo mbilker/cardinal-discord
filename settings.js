@@ -1,6 +1,4 @@
 module.exports = Object.freeze({
-  SERVER_NAME: 'Digital Debauchery',
-
   STATUS_DELAY_TIME: 3000,
   STREAM_VOLUME: 0.2,
 
