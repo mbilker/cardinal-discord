@@ -27,7 +27,7 @@ class Nicehash extends Module {
 
       if (res.statusCode !== 200) {
         this.logger.debug('bailing out, non-200 status code');
-        m.reply('Error code for response');
+        m.reply('There was an error processing the response');
         return;
       }
 
@@ -40,7 +40,7 @@ class Nicehash extends Module {
           data = JSON.parse(text);
         } catch (e) {
           this.logger.debug('error decoding json', e);
-          m.reply('Error decoding JSON payload');
+          m.reply('There was an error decoding the JSON payload');
           return;
         }
 
