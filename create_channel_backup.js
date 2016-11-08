@@ -36,10 +36,10 @@ const STYLE_CLOSER =
 `;
 
 const FOOTER =
-`       </div>
-      </div>
+`      </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>`;
 
 function avatarStyleDeclaration(id, avatar) {
