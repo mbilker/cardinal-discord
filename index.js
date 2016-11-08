@@ -4,6 +4,7 @@ debug.enable('hubot*,cardinal*');
 
 const Main = require('./Core/Main');
 
+const BackupCommand = require('./modules/dump');
 const EvalCommand = require('./modules/eval');
 const HelpCommand = require('./modules/help');
 const MathCommand = require('./modules/math');
@@ -14,7 +15,7 @@ const BotStatus = require('./modules/status');
 
 Main.initialize({
   prefix: '`',
-  modules: [EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus ]
+  modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus]
 });
 
 //require('./icy.js');
