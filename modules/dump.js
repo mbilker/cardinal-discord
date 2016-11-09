@@ -1,6 +1,8 @@
 "use strict";
 
-const https = require('https');
+const followRedirects = require('follow-redirects');
+const { http, https } = followRedirects;
+const url = require('url');
 
 const Module = require('../Core/API/Module');
 
@@ -12,7 +14,7 @@ class BackupCommand extends Module {
 
     this.redisClient = this.container.get('redisBrain');
 
-    this._inProgress = {};
+    this._inProgress = new Map();
     this._avatarCache = {};
     this._messages = {};
 
@@ -36,14 +38,13 @@ class BackupCommand extends Module {
     });
   }
 
-  fetchAvatar(user) {
-    if (this._avatarCache[user.id]) {
-      return this._avatarCache[user.id];
-    }
+  fetchImage(imageURL) {
+    const options = url.parse(imageURL);
+    const httpObject = options.protocol === 'http:' ? http : https;
 
-    const promise = new Promise((resolve, reject) => {
-      https.get(user.avatarURL, (res) => {
-        this.logger.debug(`avatar response ${user.id}`);
+    return new Promise((resolve, reject) => {
+      httpObject.get(imageURL, (res) => {
+        this.logger.debug(`fetchImage res ${imageURL}`);
 
         const buffers = [];
         res.on('data', (chunk) => {
@@ -52,7 +53,6 @@ class BackupCommand extends Module {
         res.on('end', () => {
           const buf = Buffer.concat(buffers);
           const base64 = `data:image/jpeg;base64,${buf.toString('base64')}`;
-          this.logger.debug(`avatar retrieved ${user.id}`);
           resolve(base64);
         });
         res.on('error', (err) => {
@@ -61,6 +61,17 @@ class BackupCommand extends Module {
       }).on('error', (err) => {
         reject(err);
       });
+    });
+  }
+
+  fetchAvatar(user) {
+    if (this._avatarCache[user.id]) {
+      return this._avatarCache[user.id];
+    }
+
+    const promise = this.fetchImage(user.avatarURL).then((base64) => {
+      this.logger.debug(`avatar retrieved ${user.id}`);
+      return base64;
     });
     this._avatarCache[user.id] = promise;
 
@@ -76,21 +87,33 @@ class BackupCommand extends Module {
    */
   onCompletion(textChannel) {
     const messages = this._messages[textChannel.id];
+    const info = textChannel.toJSON();
+
     const avatars = {};
     const finalized = messages.map((message) => {
       const plain = message.toJSON();
       const resolvedContent = message.resolveContent();
       plain.content = resolvedContent;
 
-      return this.fetchAvatar(message.author).then((base64) => {
-        avatars[message.author.id] = base64;
+      const promises = [this.fetchAvatar(message.author)];
+
+      for (const embed of message.embeds) {
+        promises.push(this.fetchImage(embed.thumbnail.url));
+      }
+
+      return Promise.all(promises).then((values) => {
+        avatars[message.author.id] = values.shift();
+
+        for (const [i, base64] of values.entries()) {
+          plain.embeds[i].proxy_url = base64;
+        }
 
         return plain;
       });
     });
 
     return Promise.all(finalized).then((messages) => {
-      const obj = { avatars, messages };
+      const obj = { avatars, messages, info };
       return this.saveToRedis(textChannel, obj);
     });
   }
@@ -103,7 +126,7 @@ class BackupCommand extends Module {
     if (!e.messages.length) {
       this.logger.debug('reached the end of the history');
 
-      delete this._inProgress[textChannel.id];
+      this._inProgress.delete(textChannel.id);
       return this.onCompletion(textChannel);
     }
 
@@ -133,7 +156,7 @@ class BackupCommand extends Module {
     if (this._inProgress[textChannel.id]) {
       return m.reply('Already backing up channel');
     }
-    this._inProgress[textChannel.id] = true;
+    this._inProgress.set(textChannel.id, true);
     this._messages[textChannel.id] = [];
 
     this.logger.info(`starting backup of ${textChannel.name} (${textChannel.id})`);
