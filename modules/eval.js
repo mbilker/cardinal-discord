@@ -24,14 +24,15 @@ class EvalCommand extends Module {
 
     this.logger.debug(`EXECUTE_JS ${args}`);
 
-    let res = null;
+    let promise = null;
     const text = args.join(' ');
 
     this.logger.debug(`EXECUTE_JS 2 ${text}`);
 
-    try {
-      res = eval(text);
-      this.logger.debug('EXECUTE_JS res', res);
+    return new Promise((resolve, reject) => {
+      resolve(eval(text));
+    }).then((res) => {
+      //this.logger.debug('EXECUTE_JS res', res);
 
       const inspect = util.inspect(res);
       let string = `${PREFIX}${inspect}${SUFFIX}`;
@@ -44,10 +45,10 @@ class EvalCommand extends Module {
       } else {
         m.channel.sendMessage(string);
       }
-    } catch (err) {
+    }, (err) => {
       const errMsg = err ? err.stack : 'no error message';
       m.reply('Something went wrong:\n```\n' + errMsg + '\n```');
-    }
+    });
   }
 }
 
