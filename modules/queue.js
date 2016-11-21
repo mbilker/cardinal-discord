@@ -213,7 +213,7 @@ class MusicPlayer extends Module {
     const position = index - 1;
     const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
 
-    return this.redisClient.getAsync(redisKey).then((result) => {
+    return this.redisClient.getAsync(redisKey).then(([ result ]) => {
       if (!result) {
         return m.reply('There is no previous search query');
       }
