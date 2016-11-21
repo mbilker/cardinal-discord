@@ -197,9 +197,8 @@ class BackupCommand extends Module {
   }
 
   storeMessages(ctx, id, messages) {
-    const reversed = messages.reverse();
-    const part = this.onPartCompletion(ctx, reversed);
-    ctx.messages = ctx.messages.concat(part);
+    const part = this.onPartCompletion(ctx, messages);
+    ctx.messages = part.concat(ctx.messages);
   }
 
   onFetch(ctx, e, textChannel) {
@@ -210,6 +209,7 @@ class BackupCommand extends Module {
       return this.onCompletion(ctx, textChannel);
     }
 
+    e.messages.reverse();
     this.storeMessages(ctx, textChannel.id, e.messages);
 
     const before = e.messages[0];
