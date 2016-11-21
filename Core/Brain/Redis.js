@@ -16,6 +16,7 @@ class RedisBrain {
       console.log('redis error:', err);
     });
 
+    promisify(client, 'exists');
     promisify(client, 'set');
     promisify(client, 'get');
     promisify(client, 'rpush');
