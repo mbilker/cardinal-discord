@@ -27,7 +27,7 @@ class BackupCommand extends Module {
   }
 
   getRedisKey(guildId, scope) {
-    return `cardinal.${guildId}.channelbackup.${scope}`;
+    return `cardinal.${guildId}.channelbackup.${Array.isArray(scope) ? scope.join('.') : scope}`;
   }
 
   extractId(mention) {
@@ -41,6 +41,19 @@ class BackupCommand extends Module {
     return this.redisClient.setAsync(redisKey, JSON.stringify(obj)).then(() => {
       this.logger.info('saved to redis');
     });
+  }
+
+  deleteOldKeys(textChannel) {
+    const guildId = textChannel.guild.id;
+    const channelId = textChannel.id;
+
+    const redisKeys = [
+      this.getRedisKey(guildId, [channelId, 'avatars']),
+      this.getRedisKey(guildId, [channelId, 'messages']),
+      this.getRedisKey(guildId, [channelId, 'info'])
+    ];
+
+    return this.redisClient.delAsync(redisKeys);
   }
 
   fetchImage(imageURL) {
@@ -79,6 +92,24 @@ class BackupCommand extends Module {
     });
   }
 
+  cacheInRedis(redisKey, func) {
+    // ignore caching for now
+    return func();
+
+    return this.redisClient.getAsync(redisKey).then(([ obj ]) => {
+      if (obj) {
+        this.logger.debug(`redis cache exists ${id}`);
+        return obj;
+      }
+      return func();
+    }).then((obj) => {
+      if (obj) {
+        return this.redisClient.setAsync(redisKey, obj).then(() => obj);
+      }
+      return obj;
+    });
+  }
+
   fetchAvatar({ avatarURL, id }) {
     if (this._avatarCache[id]) {
       return this._avatarCache[id];
@@ -88,17 +119,10 @@ class BackupCommand extends Module {
 
     const redisKey = this.getRedisKey('avatar', id);
 
-    const promise = this.redisClient.getAsync(redisKey).then(([ avatar ]) => {
-      if (avatar) {
-        this.logger.debug(`avatar redis exists ${id}`);
-        return avatar;
-      }
-      return this.fetchImage(avatarURL);
-    }).then((base64) => {
+    const promise = this.cacheInRedis(redisKey, () =>
+      this.fetchImage(avatarURL)
+    ).then((base64) => {
       this.logger.debug(`avatar retrieved ${id}`);
-      if (base64) {
-        return this.redisClient.setAsync(redisKey, base64).then(() => base64);
-      }
       return base64;
     }, (err) => {
       this.logger.error(`avatar fetch failed ${id} ${avatarURL}`);
@@ -112,17 +136,10 @@ class BackupCommand extends Module {
   fetchOtherImage(imageURL) {
     const redisKey = this.getRedisKey('image', crypto.createHash('sha256').update(imageURL).digest('hex'));
 
-    return this.redisClient.getAsync(redisKey).then(([ image ]) => {
-      if (image) {
-        this.logger.warn(`other image redis exists ${imageURL}`);
-        return image;
-      }
-      return this.fetchImage(imageURL);
-    }).then((base64) => {
+    return this.cacheInRedis(redisKey, () =>
+      this.fetchImage(imageURL)
+    ).then((base64) => {
       this.logger.debug(`other image retrieved ${imageURL}`);
-      if (base64) {
-        return this.redisClient.setAsync(redisKey, base64).then(() => base64);
-      }
       return base64;
     }, (err) => {
       this.logger.warn(`other image failed ${imageURL}`);
@@ -148,7 +165,7 @@ class BackupCommand extends Module {
         ctx.avatars.push(this.fetchAvatar(message.author).then((res) => [message.author.id, res]));
       }
 
-      const promises = message.embeds.map((embed) => {
+      const embedPromises = message.embeds.map((embed) => {
         if (embed && embed.thumbnail) {
           return this.fetchOtherImage(embed.thumbnail.url);
         } else if (embed) {
@@ -163,13 +180,27 @@ class BackupCommand extends Module {
         }
       });
 
-      return Promise.all(promises).then((values) => {
-        for (const [i, base64] of values.entries()) {
+      const attachmentPromises = message.attachments.map((attachment) => {
+        return this.fetchOtherImage(attachment.url);
+      });
+
+      const allEmbeds = Promise.all(embedPromises).then((embeds) => {
+        for (const [i, base64] of embeds.entries()) {
           if (base64) {
             plain.embeds[i].proxy_url = base64;
           }
         }
+      });
 
+      const allAttachments = Promise.all(attachmentPromises).then((attachments) => {
+        for (const [i, base64] of attachments.entries()) {
+          if (base64) {
+            plain.attachments[i].proxy_url = base64;
+          }
+        }
+      });
+
+      return Promise.all([allEmbeds, allAttachments]).then(() => {
         return plain;
       });
     });
@@ -178,21 +209,33 @@ class BackupCommand extends Module {
   }
 
   onCompletion(ctx, textChannel) {
+    const guildId = textChannel.guild.id;
+    const channelId = textChannel.id;
+
     const { info } = ctx;
 
     const allPromises = [
       Promise.all(ctx.avatars),
-      Promise.all(ctx.messages)
+      Promise.all(ctx.messages),
+      this.deleteOldKeys(textChannel)
     ];
 
     return Promise.all(allPromises).then(([ zipAvatars, messages ]) => {
-      const avatars = {};
+      const redisPromises = [];
       for (const zip of zipAvatars) {
-        avatars[zip[0]] = zip[1];
+        const redisKey = this.getRedisKey(guildId, [channelId, 'avatars']);
+        redisPromises.push(this.redisClient.hsetAsync(redisKey, zip[0], zip[1]));
       }
 
-      const obj = { avatars, messages, info };
-      return this.saveToRedis(textChannel, obj);
+      for (const message of messages) {
+        const redisKey = this.getRedisKey(guildId, [channelId, 'messages']);
+        redisPromises.push(this.redisClient.rpushAsync(redisKey, JSON.stringify(message)));
+      }
+
+      const infoRedisKey = this.getRedisKey(guildId, [channelId, 'info']);
+      redisPromises.push(this.redisClient.setAsync(infoRedisKey, JSON.stringify(info)));
+
+      return Promise.all(redisPromises);
     });
   }
 
