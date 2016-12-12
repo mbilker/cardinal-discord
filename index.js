@@ -13,6 +13,8 @@ const PingPong = require('./modules/pingpong');
 const Queue = require('./modules/queue');
 const BotStatus = require('./modules/status');
 
+Queue.useMPD = false;
+
 Main.initialize({
   prefix: '`',
   modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus]

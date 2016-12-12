@@ -19,8 +19,6 @@ class MusicPlayer extends Module {
     this.bot = this.container.get('bot');
     this.redisClient = this.container.get('redisBrain');
 
-    this.search = new LocalMusicSearch(this.container);
-
     this.currentlyPlaying = null;
     this.voiceConnection = null;
     this.recordCache = new Map();
@@ -31,15 +29,21 @@ class MusicPlayer extends Module {
     this.hears(/li/i, this.onDisplayPlaylist.bind(this));
     this.hears(/queue/i, this.queueItem.bind(this));
     this.hears(/next/i, this.skipSong.bind(this));
-    this.hears(/search/i, this.onSearch.bind(this));
     this.hears(/yt/i, this.onYoutube.bind(this));
     this.hears(/sel/i, this.onSelectSearchResult.bind(this));
+
+    if (MusicPlayer.useMPD) {
+      this.search = new LocalMusicSearch(this.container);
+      this.hears(/search/i, this.onSearch.bind(this));
+    }
 
     QueuedMedia.initialize(this.container);
   }
 
   shutdown() {
-    this.search.shutdown();
+    if (MusicPlayer.useMPD) {
+      this.search.shutdown();
+    }
   }
 
   getRedisKey(guildId, scope) {
