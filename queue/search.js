@@ -2,12 +2,15 @@
 
 const mpd = require('mpd');
 
-const Settings = require('../settings');
-
 class LocalMusicSearch {
   constructor(container) {
     this.container = container;
     this.logger = container.get('logger');
+    this.options = container.get('options');
+
+    if (!this.options.mpd) {
+      throw new Error('options.mpd is null');
+    }
 
     this.connectToMpd();
   }
@@ -17,9 +20,11 @@ class LocalMusicSearch {
   }
 
   connectToMpd() {
+    const { mpd } = this.options;
+
     this.mpd = mpd.connect({
-      host: Settings.MPD_HOST,
-      port: Settings.MPD_PORT,
+      host: mpd.host,
+      port: mpd.port
     });
 
     this.mpd.on('ready', () => {
