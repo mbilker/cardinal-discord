@@ -61,7 +61,7 @@ class Bot {
   onVoiceDisconnected(e) {
     this.logger.info('Disconnected from voice server', e.error);
 
-    if (e.endpointAwait) {
+    //if (e.endpointAwait) {
       // handle reconnect instantly if it's a server-switch disconnect
       // transparently creates same promise as `oldChannel.join()`
       // see the `reconnect` function below
@@ -72,17 +72,17 @@ class Bot {
       //       the voice channel. Pending promise will reject with
       //       `Error` message "Cancelled".
 
-      e.endpointAwait.catch((err) => {
+      //e.endpointAwait.catch((err) => {
         // server switching failed, do a regular backoff
-        setTimeout(() => this.reconnect(channel), 5000);
-      });
-      return;
-    }
+        //setTimeout(() => this.reconnect(channel), 5000);
+      //});
+      //return;
+    //}
 
     // normal disconnect
-    if (!e.manual) {
-      setTimeout(() => this.reconnect(channel), 5000);
-    }
+    //if (!e.manual) {
+      //setTimeout(() => this.reconnect(channel), 5000);
+    //}
   }
 
   onDisconnect(e) {
