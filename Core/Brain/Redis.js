@@ -6,9 +6,9 @@ const promisify = require('../promisify');
 
 class RedisBrain {
   constructor(url) {
-    //if (!url) {
-    //  throw new Error('Redis URL not provided');
-    //}
+    if (!url) {
+      throw new Error('Redis URL not provided');
+    }
 
     const client = Redis.createClient(url);
 

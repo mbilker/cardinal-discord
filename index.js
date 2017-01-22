@@ -17,10 +17,15 @@ Queue.useMPD = false;
 
 Main.initialize({
   prefix: '`',
-  modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus]
-});
+  modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus],
 
-//require('./icy.js');
-//require('./mpd.js');
-//const status = require('./status.js');
-//require('./web.js');
+  nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
+
+  mpd: {
+    host: 'turret.lab.mbilker.us',
+    port: 6600,
+    baseDirectory: '/storage/media/mpd'
+  },
+
+  redisUrl: 'redis://localhost'
+});

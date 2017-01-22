@@ -7,13 +7,15 @@ const chalk = require('chalk');
 const CommandManager = require('./CommandManager.js');
 const Module = require('./API/Module');
 
+const packageOptions = require('../package.json');
+
 class Main {
   constructor(opts) {
     process.on('unhandledRejection', function onError(err) {
       throw err;
     });
 
-    this.packageOptions = require('../package.json');
+    this.packageOptions = packageOptions;
     this.options = opts;
 
     this.commandManager = null;
@@ -65,7 +67,7 @@ class Main {
   setupBrain() {
     const RedisBrain = require('./Brain/Redis');
 
-    this.brain = new RedisBrain();
+    this.brain = new RedisBrain(this.options.redisUrl);
     this.container.set('redisBrain', this.brain);
   }
 
