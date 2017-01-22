@@ -4,11 +4,12 @@ const https = require('https');
 const url = require('url');
 
 const Module = require('../Core/API/Module');
-const Settings = require('../settings');
 
 class Nicehash extends Module {
   constructor(container) {
     super(container);
+
+    this.nicehashAddress = container.get('settings').nicehashAddress;
 
     this.hears(/nice/i, this.display.bind(this));
   }
@@ -45,7 +46,7 @@ class Nicehash extends Module {
         }
 
         if (!data.result.stats.length) {
-          m.reply(`No data found for ${Settings.NICEHASH_ADDRESS}`);
+          m.reply(`No data found for ${this.nicehashAddress}`);
           return;
         }
 
@@ -53,7 +54,7 @@ class Nicehash extends Module {
         const speed = stats.reduce(((total, stats) => total + parseFloat(stats.accepted_speed) * 1000), 0);
         const balance = stats.reduce(((total, stats) => total + parseFloat(stats.balance)), 0);
 
-        m.channel.sendMessage(`:pick: ${Settings.NICEHASH_ADDRESS}
+        m.channel.sendMessage(`:pick: ${this.nicehashAddress}
 :zap: ${speed} MH/s
 :moneybag: ${balance} BTC`);
         for (let i = 0; i <= 2; i++) {

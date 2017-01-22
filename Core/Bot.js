@@ -5,8 +5,6 @@ const util = require('util');
 
 const Discordie = require('discordie');
 
-const Settings = require('../settings');
-
 const oath = require('../hubot_oath.json');
 
 class Bot {

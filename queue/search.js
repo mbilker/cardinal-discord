@@ -6,7 +6,7 @@ class LocalMusicSearch {
   constructor(container) {
     this.container = container;
     this.logger = container.get('logger');
-    this.options = container.get('options');
+    this.settings = container.get('settings');
 
     if (!this.options.mpd) {
       throw new Error('options.mpd is null');
@@ -20,7 +20,7 @@ class LocalMusicSearch {
   }
 
   connectToMpd() {
-    const { mpd } = this.options;
+    const { mpd } = this.settings;
 
     this.mpd = mpd.connect({
       host: mpd.host,

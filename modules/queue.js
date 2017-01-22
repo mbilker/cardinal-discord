@@ -5,7 +5,6 @@ const path = require('path');
 const util = require('util');
 
 const Module = require('../Core/API/Module');
-const Settings = require('../settings');
 
 const Types = require('../queue/types');
 const LocalMusicSearch = require('../queue/search');
@@ -18,6 +17,7 @@ class MusicPlayer extends Module {
 
     this.bot = this.container.get('bot');
     this.redisClient = this.container.get('redisBrain');
+    this.settings = this.container.get('settings');
 
     this.currentlyPlaying = null;
     this.voiceConnection = null;
@@ -175,7 +175,7 @@ class MusicPlayer extends Module {
 
     return this.search.byAnyField(text).then((results) =>
       results.slice(0, 5).map((entry) => {
-        const filePath = path.join(Settings.MPD_BASE_DIRECTORY, entry.file);
+        const filePath = path.join(this.settings.mpd.baseDirectory, entry.file);
         return { id: filePath, title: entry.file };
       })
     ).then((entries) => {

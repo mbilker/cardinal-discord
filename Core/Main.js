@@ -48,6 +48,7 @@ class Main {
     this.container = new Map();
 
     this.container.set('shutdownMode', false);
+    this.container.set('settings', this.options.settings);
 
     this.setupLogger();
     this.setupBrain();
