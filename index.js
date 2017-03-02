@@ -19,6 +19,8 @@ Main.initialize({
   prefix: '`',
   modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus],
 
+  redisUrl: 'redis://localhost',
+
   settings: {
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 
@@ -26,8 +28,6 @@ Main.initialize({
       host: 'turret.lab.mbilker.us',
       port: 6600,
       baseDirectory: '/storage/media/mpd'
-    },
-
-    redisUrl: 'redis://localhost'
+    }
   }
 });
