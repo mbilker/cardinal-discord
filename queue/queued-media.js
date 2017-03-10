@@ -111,19 +111,23 @@ class QueuedMedia {
   playLocal(voiceConnection) {
     logger.debug(`playLocal: ${this.url} ${this.encoding}`);
 
+/*
     if (this.encoding === 'opus') {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: this.url,
       });
     } else {
+*/
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
         source: this.url,
         format: 'opus',
         debug: true,
       });
+/*
     }
+*/
 
     this.hookEncoderEvents();
     this.hookPlayEvents();
