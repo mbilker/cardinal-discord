@@ -89,9 +89,11 @@ class QueuedMedia {
   }
 
   playHTTPS(voiceConnection, retry) {
+/*
     if (this.encoding === 'opus') {
       this.playOpusHTTPS(voiceConnection);
     } else {
+*/
       logger.debug(`playHTTPS: ${this.id} ${this.encoding}`);
       logger.debug('audio is not opus, using ffmpeg');
 
@@ -105,7 +107,9 @@ class QueuedMedia {
 
       this.hookEncoderEvents();
       this.hookPlayEvents();
+/*
     }
+*/
   }
 
   playLocal(voiceConnection) {
