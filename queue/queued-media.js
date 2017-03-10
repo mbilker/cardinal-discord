@@ -53,7 +53,7 @@ class QueuedMedia {
   hookEncoderEvents() {
     this.encoder.once('end', () => {
       logger.debug('encoder end', this.id || this.url, this.encoding);
-      //this.donePlaying();
+      this.donePlaying();
     });
     this.encoder.once('unpipe', () => {
       logger.debug('encoder unpipe', this.id || this.url, this.encoding);
