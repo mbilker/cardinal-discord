@@ -95,7 +95,7 @@ class QueuedMedia {
     } else {
 */
       logger.debug(`playHTTPS: ${this.id} ${this.encoding}`);
-      logger.debug('audio is not opus, using ffmpeg');
+      //logger.debug('audio is not opus, using ffmpeg');
 
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
