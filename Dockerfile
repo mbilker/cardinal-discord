@@ -1,4 +1,4 @@
-FROM nodejs:argon
+FROM node:argon
 
 RUN mkdir -p /cardinal
 WORKDIR /cardinal
