@@ -19,7 +19,7 @@ Main.initialize({
   prefix: '`',
   modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus],
 
-  redisUrl: 'redis://localhost',
+  redisUrl: process.env.REDIS_URL || 'redis://localhost',
 
   settings: {
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
