@@ -1,6 +1,6 @@
 FROM node:boron
 
-RUN echo "deb http://www.deb-multimedia.org jessie main non-free" >> /etc/apt/sources.list && apt-get update && apt-get -y --force-yes ffmpeg
+RUN echo "deb http://www.deb-multimedia.org jessie main non-free" >> /etc/apt/sources.list && apt-get update && apt-get -y --force-yes install ffmpeg
 
 RUN mkdir -p /cardinal
 WORKDIR /cardinal
