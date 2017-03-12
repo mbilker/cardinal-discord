@@ -10,7 +10,12 @@ class RedisBrain {
       throw new Error('Redis URL not provided');
     }
 
-    const client = Redis.createClient(url);
+    const client = Redis.createClient(url, {
+      retry_strategy: function retryConnection(options) {
+        // reconnect after
+        return Math.min(options.attempt * 100, 3000);
+      }
+    });
 
     client.on('error', (err) => {
       console.log('redis error:', err);
