@@ -17,7 +17,7 @@ class Nicehash extends Module {
   display(m) {
     this.logger.debug('NICEHASH_DISPLAY');
 
-    const reqUrl = `https://www.nicehash.com/api?method=stats.provider&location=1&addr=${Settings.NICEHASH_ADDRESS}`;
+    const reqUrl = `https://www.nicehash.com/api?method=stats.provider&location=1&addr=${this.nicehashAddress}`;
     const parsed = url.parse(reqUrl);
     const req = https.get(parsed);
 
