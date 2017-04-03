@@ -110,15 +110,15 @@ class MusicPlayer extends Module {
       return m.reply('Please give me a URL to play');
     }
 
-    Utils.fetchYoutubeInfo(url).then((arr) => {
+    Utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
 
-      const fields = ['title', 'video_id', 'length_seconds'];
+      const fields = ['alt_title', 'display_id', 'duration'];
       const info = fields.reduce((obj, field) => {
-        obj[field] = arr[0][field];
+        obj[field] = obj[field];
         return obj;
       }, {});
-      const formats = arr[1];
+      const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
 
       const record = {
         type: Types.YTDL,

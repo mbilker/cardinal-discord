@@ -25,13 +25,13 @@ class QueuedMedia {
     this.time = null;
 
     if (this.type === Types.YTDL) {
-      this.id = record.info.video_id;
-      this.duration = record.info.length_seconds;
+      this.id = record.info.display_id;
+      this.duration = record.info.duration;
       this.formats = record.formats;
       this.formatIndex = 0;
 
       const format = this.formats[this.formatIndex];
-      this.encoding = format.audioEncoding;
+      this.encoding = format.acodec;
       this.url = format.url;
     } else if (this.type === Types.LOCAL) {
       this.format = record.info.format;
