@@ -12,6 +12,14 @@ const apiKey = require('../google_api.json').apiKey;
 const YOUTUBE_DL_SERVICE_HOSTNAME = process.env.YOUTUBE_DL_SERVICE_HOSTNAME || 'localhost';
 const YOUTUBE_DL_SERVICE_PORT = process.env.YOUTUBE_DL_SERVICE_PORT || '5000';
 
+function formatTime(seconds) {
+  function zeroPad(n) {
+    return n < 10 ? '0' + n : n;
+  };
+  return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
+};
+
+/*
 function sortFormats(a, b) {
   // anything towards the beginning of the array is -1, 1 to move it to the end
   if (a.audioEncoding === 'opus' && b.audioEncoding !== 'opus') {
@@ -35,14 +43,6 @@ function sortFormats(a, b) {
   return 0;
 };
 
-function formatTime(seconds) {
-  function zeroPad(n) {
-    return n < 10 ? '0' + n : n;
-  };
-  return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
-};
-
-/*
 function fetchYoutubeInfo(url) {
   return new Promise((resolve, reject) => {
     ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
@@ -84,8 +84,11 @@ function fetchYoutubeInfo(url) {
       });
       res.on('end', () => {
         const buf = Buffer.concat(buffers);
-        const obj = JSON.parse(buf);
-        resolve(obj);
+        if (res.statusCode === 200) {
+          const obj = JSON.parse(buf);
+          resolve(obj);
+        } else {
+          reject(`Failed request: ${buf}`);
       });
     });
 
@@ -105,7 +108,7 @@ function searchYoutube(searchString) {
 };
 
 module.exports = {
-  sortFormats,
+//  sortFormats,
   formatTime,
   fetchYoutubeInfo,
   searchYoutube,
