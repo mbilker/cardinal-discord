@@ -66,6 +66,7 @@ function fetchYoutubeInfo(url) {
   });
 };
 */
+
 function fetchYoutubeInfo(url) {
   return new Promise((resolve, reject) => {
     const req = http.request({
@@ -89,6 +90,7 @@ function fetchYoutubeInfo(url) {
           resolve(obj);
         } else {
           reject(`Failed request: ${buf}`);
+        }
       });
     });
 
