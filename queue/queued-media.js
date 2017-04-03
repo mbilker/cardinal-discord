@@ -135,7 +135,9 @@ class QueuedMedia {
         format: 'opus',
         debug: true,
       });
+/*
     }
+*/
 
     this.hookEncoderEvents();
     this.hookPlayEvents();
