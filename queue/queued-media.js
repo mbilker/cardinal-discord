@@ -34,8 +34,7 @@ class QueuedMedia {
       this.formatIndex = 0;
 
       this.encoding = record.info.acodec;
-      // this.url = record.info.url;
-      this.url = path.join(YOUTUBE_DL_STORAGE_DIRECTORY, `${this.title}-${this.id}.${record.info.extension}`);
+      this.url = record.info.url;
 
       // const format = this.formats[this.formatIndex];
       // this.encoding = format.acodec;
