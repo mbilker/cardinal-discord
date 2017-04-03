@@ -113,10 +113,17 @@ class MusicPlayer extends Module {
     Utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
 
-      const fields = ['alt_title', 'display_id', 'duration'];
-      const info = fields.reduce((obj, field) => {
-        obj[field] = obj[field];
-        return obj;
+      const fields = [
+        { from: 'title' },
+        { from: 'display_id' },
+        { from: 'duration' },
+        { from: 'acodec' },
+        { from: 'url' },
+        { from: 'ext', to: 'extension' },
+      ];
+      const info = fields.reduce((info, field) => {
+        info[field.to || field.from] = obj[field.from];
+        return info;
       }, {});
       const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
 

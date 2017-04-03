@@ -72,7 +72,7 @@ function fetchYoutubeInfo(url) {
       method: 'GET',
       hostname: YOUTUBE_DL_SERVICE_HOSTNAME,
       port: YOUTUBE_DL_SERVICE_PORT,
-      path: '/info?v=' + url,
+      path: '/download?v=' + url,
     }, (res) => {
       const buffers = [];
 
@@ -83,7 +83,9 @@ function fetchYoutubeInfo(url) {
         buffers.push(chunk);
       });
       res.on('end', () => {
-        resolve(Buffer.concat(buffers));
+        const buf = Buffer.concat(buffers);
+        const obj = JSON.parse(buf);
+        resolve(obj);
       });
     });
 

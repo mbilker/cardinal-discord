@@ -1,5 +1,6 @@
 "use strict";
 
+const path = require('path');
 const url = require('url');
 
 const debug = require('debug')('cardinal:queued-media');
@@ -7,6 +8,8 @@ const https = require('follow-redirects').https;
 
 const Types = require('./types');
 const Utils = require('./utils');
+
+const YOUTUBE_DL_STORAGE_DIRECTORY = process.env.YOUTUBE_DL_STORAGE_DIRECTORY || '/music';
 
 let logger = null;
 
@@ -30,9 +33,13 @@ class QueuedMedia {
       this.formats = record.formats;
       this.formatIndex = 0;
 
-      const format = this.formats[this.formatIndex];
-      this.encoding = format.acodec;
-      this.url = format.url;
+      this.encoding = record.info.acodec;
+      // this.url = record.info.url;
+      this.url = path.join(YOUTUBE_DL_STORAGE_DIRECTORY, `${this.title}-${this.id}.${record.info.extension}`);
+
+      // const format = this.formats[this.formatIndex];
+      // this.encoding = format.acodec;
+      // this.url = format.url;
     } else if (this.type === Types.LOCAL) {
       this.format = record.info.format;
       this.encoding = record.info.encoding;
