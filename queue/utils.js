@@ -1,11 +1,16 @@
 "use strict";
 
+const http = require('http');
+
 const google = require('googleapis');
-const ytdl = require('ytdl-core');
+//const ytdl = require('ytdl-core');
 
 const youtube = google.youtube('v3');
 
 const apiKey = require('../google_api.json').apiKey;
+
+const YOUTUBE_DL_SERVICE_HOSTNAME = process.env.YOUTUBE_DL_SERVICE_HOSTNAME || 'localhost';
+const YOUTUBE_DL_SERVICE_PORT = process.env.YOUTUBE_DL_SERVICE_PORT || '5000';
 
 function sortFormats(a, b) {
   // anything towards the beginning of the array is -1, 1 to move it to the end
@@ -37,6 +42,7 @@ function formatTime(seconds) {
   return Math.floor(seconds / 60) + ':' + zeroPad(seconds % 60);
 };
 
+/*
 function fetchYoutubeInfo(url) {
   return new Promise((resolve, reject) => {
     ytdl.getInfo(url, { filter: 'audioonly' }, (err, info) => {
@@ -59,6 +65,31 @@ function fetchYoutubeInfo(url) {
     });
   });
 };
+*/
+function fetchYoutubeInfo(url) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      method: 'GET',
+      hostname: YOUTUBE_DL_SERVICE_HOSTNAME,
+      port: YOUTUBE_DL_SERVICE_PORT,
+      path: '/info?v=' + url,
+    }, (res) => {
+      const buffers = [];
+
+      res.on('error', (err) => {
+        reject(err);
+      });
+      res.on('data', (chunk) => {
+        buffers.push(chunk);
+      });
+      res.on('end', () => {
+        resolve(Buffer.concat(buffers));
+      });
+    });
+
+    req.end();
+  });
+}
 
 function searchYoutube(searchString) {
   return new Promise((resolve, reject) => {
