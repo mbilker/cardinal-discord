@@ -96,11 +96,13 @@ class QueuedMedia {
   }
 
   playHTTPS(voiceConnection, retry) {
+/*
     if (this.encoding === 'opus') {
       this.playOpusHTTPS(voiceConnection);
     } else {
+*/
       logger.debug(`playHTTPS: ${this.id} ${this.encoding}`);
-      logger.debug('audio is not opus, using ffmpeg');
+      //logger.debug('audio is not opus, using ffmpeg');
 
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
@@ -112,18 +114,21 @@ class QueuedMedia {
 
       this.hookEncoderEvents();
       this.hookPlayEvents();
+/*
     }
+*/
   }
 
   playLocal(voiceConnection) {
     logger.debug(`playLocal: ${this.url} ${this.encoding}`);
-
+/*
     if (this.encoding === 'opus') {
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'WebmOpusPlayer',
         source: this.url,
       });
     } else {
+*/
       this.encoder = voiceConnection.createExternalEncoder({
         type: 'ffmpeg',
         source: this.url,
