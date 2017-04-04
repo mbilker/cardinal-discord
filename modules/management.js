@@ -74,24 +74,26 @@ class GuildManagement extends Module {
       return m.reply('I need the username and the number of messages by that user to prune.');
     }
 
-    const userId = REGEX.exec(args[0]);
+    const user = REGEX.exec(args[0]);
     const numMessages = parseInt(args[1]);
 
     if (isNaN(numMessages) || numMessages <= 0) {
       return m.reply('Please supply a number of messages to prune that is greater than zero.');
     }
-    if (userId === null) {
+    if (user === null) {
       return m.reply('Please supply the user as a mention for the first argument.');
     }
 
+    const userId = user[1];
     const client = this.container.get('bot').client;
 
-    return client.Users.fetchMembers(m.guild).then(() =>
-      m.channel.fetchMessages()
-    ).then(({messages}) => {
+    return m.channel.fetchMessages().then(({messages}) => {
       const msgsByUser = messages.filter(msg => msg.author.id === userId);
       const toDelete = msgsByUser.slice(0, numMessages);
-      return client.Messages.deleteMessages(toDelete, m.channel);
+      const length = toDelete.length;
+      return client.Messages.deleteMessages(toDelete, m.channel).then(() =>
+        m.reply(`pruned ${length} messages.`)
+      );
     });
   }
 }
