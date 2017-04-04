@@ -24,6 +24,8 @@ class Main {
     this.buildContainer();
     this.run();
     this.buildRepl();
+
+    process.on('SIGTERM', () => this.shutdown());
   }
 
   buildRepl() {
@@ -135,9 +137,15 @@ class Main {
   }
 
   shutdown() {
+    if (this.container.get('shutdownMode')) {
+      return;
+    }
+
     this.logger.info('Main::shutdown()');
 
     this.container.set('shutdownMode', true);
+    this.repl.close();
+
     this.shutdownModules();
 
     this.bot.client.disconnect();

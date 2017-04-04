@@ -5,6 +5,7 @@ const Main = require('./Core/Main');
 const BackupCommand = require('./modules/dump');
 const EvalCommand = require('./modules/eval');
 const HelpCommand = require('./modules/help');
+const GuildManagement = require('./modules/management');
 const MathCommand = require('./modules/math');
 const Nicehash = require('./modules/nicehash');
 const PingPong = require('./modules/pingpong');
@@ -24,7 +25,7 @@ Main.initialize({
   environment: environment,
 
   prefix: '`',
-  modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus],
+  modules: [BackupCommand, EvalCommand, HelpCommand, GuildManagement, MathCommand, Nicehash, PingPong, Queue, BotStatus],
 
   redisUrl: process.env.REDIS_URL || 'redis://localhost',
 
