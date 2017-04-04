@@ -175,13 +175,11 @@ class MusicPlayer extends Module {
     }, {});
     // const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
 
-    const record = {
+    const record = Object.assign({
       type: Types.YTDL,
       ownerId: m.author.id,
       guildId: m.guild.id,
-      info,
-      // formats,
-    };
+    }, info /* , formats */);
 
     return this.queueSave(m.guild.id, record);
   }

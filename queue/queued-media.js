@@ -20,29 +20,33 @@ class QueuedMedia {
     this.ownerId = record.ownerId;
     this.guildId = record.guildId;
 
-    this.id = '';
-    this.title = record.info.title || '';
-    this.url = '';
+    this.id = record.id || '';
+    this.title = record.title || '';
+    this.url = record.url || '';
+    this.encoding = record.encoding || '';
     this.duration = 0;
     this.stream = null;
     this.time = null;
 
     if (this.type === Types.YTDL) {
-      this.id = record.info.id;
-      this.duration = record.info.duration;
-      // this.formats = record.formats;
-      // this.formatIndex = 0;
+      // this.id = record.info.id;
+      // this.duration = record.info.duration;
+      // this.encoding = record.info.encoding;
+      // this.url = record.info.url;
 
-      this.encoding = record.info.encoding;
-      this.url = record.info.url;
+      /*
+      // obsolete with new YTDL API
+      this.formats = record.formats;
+      this.formatIndex = 0;
 
-      // const format = this.formats[this.formatIndex];
-      // this.encoding = format.acodec;
-      // this.url = format.url;
+      const format = this.formats[this.formatIndex];
+      this.encoding = format.acodec;
+      this.url = format.url;
+      */
     } else if (this.type === Types.LOCAL) {
-      this.format = record.info.format;
-      this.encoding = record.info.encoding;
-      this.url = record.info.url;
+      // this.format = record.format;
+      // this.encoding = record.encoding;
+      // this.url = record.url;
     } else {
       throw new Error(`unknown type: ${this.type}`);
     }
