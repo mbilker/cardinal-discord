@@ -12,14 +12,24 @@ class GuildManagement extends Module {
 
     this.redisBrain = this.container.get('redisBrain');
 
-    this.hears(/admin/i, this.onAdminCommand.bind(this));
-    this.hears(/prune/i, this.onPruneCommand.bind(this));
+    this.checkMethods = [
+      this.checkAuthentication,
+    ];
+
+    this.hears(/admin/i, this.wrap(this.checkMethods, this.onAdminCommand));
+    this.hears(/prune/i, this.wrap(this.checkMethods, this.onPruneCommand));
   }
 
   wrap(checkMethods, methodToInvoke) {
     return (m, args) => {
-      const results = Promise.all(checkMethods);
-      console.log(results);
+      const promises = checkMethods.map(method => method.call(this, m));
+
+      return Promise.all(promises).then((results) => {
+        if (results.some(res => !res)) {
+          return m.reply('You are not authorized to use this command.');
+        }
+        return methodToInvoke.call(this, m, args);
+      });
     };
   }
 
@@ -37,20 +47,20 @@ class GuildManagement extends Module {
 
     // The role here is done by name to account for the situation where the
     // role is deleted and recreated with the same name.
-    const key = this.getRedisKey(m.guild.id, 'admin_role_name');
+    const key = this.getRedisKey(guild.id, 'admin_role_name');
     return this.redisBrain.getAsync(key).then((roleName) => {
-      if (group && guildMember.roles.some(role => role.name === roleName)) {
-        return true;
+      if (roleName && guildMember.roles.every(role => role.name !== roleName)) {
+        return false;
       }
+
+      // At this point, the user is either part of the admin role or has the
+      // "Administrator" permission
+      return true;
     });
   }
 
   onAdminCommand(m, args) {
-    return checkAuthentication(m.guild, m.author).then((authorized) => {
-      if (!authorized) {
-        return m.reply('You are unauthorized to use this command.');
-      }
-    });
+    return m.reply('This is just a placeholder.');
   }
 
   onPruneCommand(m, args) {
