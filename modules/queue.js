@@ -118,32 +118,22 @@ class MusicPlayer extends Module {
       return m.reply('Please give me a URL to play');
     }
 
+    const guildId = m.guild.id;
+
     Utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
 
-      const fields = [
-        { from: 'title' },
-        { from: 'display_id' },
-        { from: 'duration' },
-        { from: 'acodec' },
-        { from: 'url' },
-        { from: 'ext', to: 'extension' },
-      ];
-      const info = fields.reduce((info, field) => {
-        info[field.to || field.from] = obj[field.from];
-        return info;
-      }, {});
-      const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
+      if (obj['_type'] === 'playlist') {
+        const promises = [];
 
-      const record = {
-        type: Types.YTDL,
-        ownerId: m.author.id,
-        guildId: m.guild.id,
-        info,
-        formats,
-      };
+        for (const entry of obj.entries) {
+          promises.push(this.addItemToQueue(guildId, entry));
+        }
 
-      return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
+        return promises;
+      }
+
+      return this.addItemToQueue(guildId, obj);
     }).catch((err) => {
       if (err) {
         this.logger.debug('error pulling youtube data', err.stack);
@@ -151,6 +141,32 @@ class MusicPlayer extends Module {
 
       return m.reply('Sorry, I was not able to queue that song.');
     });
+  }
+
+  addItemToQueue(guildId, obj) {
+    const fields = [
+      { from: 'title' },
+      { from: 'display_id' },
+      { from: 'duration' },
+      { from: 'acodec' },
+      { from: 'url' },
+      { from: 'ext', to: 'extension' },
+    ];
+    const info = fields.reduce((info, field) => {
+      info[field.to || field.from] = obj[field.from];
+      return info;
+    }, {});
+    const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
+
+    const record = {
+      type: Types.YTDL,
+      ownerId: m.author.id,
+      guildId: m.guild.id,
+      info,
+      formats,
+    };
+
+    return this.queueSave(guildId, record).then(this.afterRedisSave.bind(this, m));
   }
 
   queueSave(guildId, record) {
