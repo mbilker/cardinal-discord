@@ -24,7 +24,7 @@ class QueuedMedia {
     this.title = record.title || '';
     this.url = record.url || '';
     this.encoding = record.encoding || '';
-    this.duration = 0;
+    this.duration = record.duration || 0;
     this.stream = null;
     this.time = null;
 
