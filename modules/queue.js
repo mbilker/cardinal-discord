@@ -70,7 +70,7 @@ class MusicPlayer extends Module {
         return m.channel.sendMessage(msg);
       } else {
         return this.redisClient.lrangeAsync(key, 0, len).then(([list]) => {
-          let promise = Promise.resolve();
+          let promise = m.channel.sendMessage(msg);
 
           const entries = list.map((entry) => Utils.formatInfo(JSON.parse(entry)));
           const msgs = this.printItems(entries);
