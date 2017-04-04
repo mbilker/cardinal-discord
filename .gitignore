@@ -1,6 +1,6 @@
 node_modules/
 logs/
-oath_token.json
+oauth_token.json
 google_api.json
 
 node-v*.tar.xz

@@ -8,6 +8,8 @@ const CommandManager = require('./CommandManager.js');
 const Module = require('./API/Module');
 
 const packageOptions = require('../package.json');
+const oauth = require('../oauth_token.json');
+const ids = require('../ids.json');
 
 class Main {
   constructor(opts) {
@@ -52,6 +54,7 @@ class Main {
     this.container.set('shutdownMode', false);
     this.container.set('environment', this.options.environment);
     this.container.set('settings', this.options.settings);
+    this.container.set('ids', ids);
 
     this.setupLogger();
     this.setupBrain();
@@ -61,6 +64,10 @@ class Main {
 
     this.loadedModules = new Map();
     this.container.set('loadedModules', this.loadedModules);
+
+    this.secrets = Secrets;
+    this.secrets.add('oauth', oauth);
+    this.container.set('secrets', this.secrets);
   }
 
   setupLogger() {
