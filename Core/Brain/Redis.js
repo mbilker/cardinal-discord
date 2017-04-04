@@ -27,6 +27,7 @@ class RedisBrain {
     promisify(client, 'hset');
     promisify(client, 'rpush');
     promisify(client, 'lpop');
+    promisify(client, 'lrange');
 
     return client;
   }
