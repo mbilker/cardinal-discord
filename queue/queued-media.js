@@ -30,8 +30,8 @@ class QueuedMedia {
     if (this.type === Types.YTDL) {
       this.id = record.info.display_id;
       this.duration = record.info.duration;
-      this.formats = record.formats;
-      this.formatIndex = 0;
+      // this.formats = record.formats;
+      // this.formatIndex = 0;
 
       this.encoding = record.info.acodec;
       this.url = record.info.url;
