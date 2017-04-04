@@ -128,20 +128,20 @@ class MusicPlayer extends Module {
 
     const guildId = m.guild.id;
 
-    Utils.fetchYoutubeInfo(url).then((obj) => {
+    return Utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
 
+      const promises = [];
+
       if (obj['_type'] === 'playlist') {
-        const promises = [];
-
         for (const entry of obj.entries) {
-          promises.push(this.addItemToQueue(m, entry));
+          promises.push(this.queueAddItem(m, entry));
         }
-
-        return promises;
+      } else {
+        promises.push(this.queueAddItem(m, obj));
       }
 
-      return this.addItemToQueue(m, obj);
+      return Promise.all(promises).then((records) => this.queuePostAddItem(m, records));
     }).catch((err) => {
       if (err) {
         this.logger.debug('error pulling youtube data', err.stack);
@@ -151,7 +151,7 @@ class MusicPlayer extends Module {
     });
   }
 
-  addItemToQueue(m, obj) {
+  queueAddItem(m, obj) {
     const fields = [
       { from: 'title' },
       { from: 'display_id' },
@@ -174,7 +174,7 @@ class MusicPlayer extends Module {
       // formats,
     };
 
-    return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
+    return this.queueSave(m.guild.id, record);
   }
 
   queueSave(guildId, record) {
@@ -184,6 +184,23 @@ class MusicPlayer extends Module {
       this.logger.debug('saved to redis');
 
       return record;
+    });
+  }
+
+  queuePostAddItem(m, records) {
+    console.log(records);
+
+    return this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
+      // short cicuit
+      return;
+
+      this.logger.debug('queueSave promise resolve', !!printString);
+      if (printString) {
+        return m.channel.sendMessage(`Added ${printString}`);
+      } else {
+        const tempQueued = new QueuedMedia(this, record);
+        return m.channel.sendMessage(`Added ${tempQueued.printString()}`);
+      }
     });
   }
 
@@ -244,21 +261,9 @@ class MusicPlayer extends Module {
     });
   }
 
-  afterRedisSave(m, record) {
-    return this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
-      this.logger.debug('queueSave promise resolve', !!printString);
-      if (printString) {
-        m.channel.sendMessage(`Added ${printString}`);
-      } else {
-        const tempQueued = new QueuedMedia(this, record);
-        m.channel.sendMessage(`Added ${tempQueued.printString()}`);
-      }
-    });
-  }
-
   skipSong(m) {
     if (m.author.id !== '142098955818369024') {
-      return m.reply(`You are not authorized to perform this action.`);
+      return m.reply('You are not authorized to perform this action.');
     }
 
     const key = this.getRedisKey(m.guild.id, 'music_queue');
@@ -268,9 +273,12 @@ class MusicPlayer extends Module {
 
       if (len === 0) {
         if (!this.currentlyPlaying) {
-          return m.channel.sendMessage('No currently playing song');
-        } else if (!this.currentlyPlaying.stream) {
-          return m.channel.sendMessage('For some reason this song does not have a stream associated with it');
+          return m.reply('No currently playing song');
+        }
+        // this.currentlyPlaying can be assumed to be true since the previous test
+        // failed
+        else if (!this.currentlyPlaying.stream) {
+          return m.reply('For some reason this song does not have a stream associated with it');
         }
 
         author = null;
@@ -296,7 +304,7 @@ class MusicPlayer extends Module {
       this.currentlyPlaying = next;
 
       if (!authorVoiceChannel && channel) {
-        channel.sendMessage(`${author.mention} Can you please join a voice channel I can play to?`);
+        channel.sendMessage(`${author.mention}, Can you please join a voice channel I can play to?`);
 
         this.queuedDonePlaying(this.currentlyPlaying);
 
@@ -311,22 +319,22 @@ class MusicPlayer extends Module {
 
           this.currentlyPlaying.play(this.voiceConnection);
 
-          return this.currentlyPlaying.printString();
+          return true;
         }).catch((err) => {
-          this.logger.debug('failed to join voice chat', err, err.stack);
+          this.logger.debug('failed to join voice chat', err);
 
           if (err.message === 'Missing permission' && authorVoiceChannel) {
-            channel.sendMessage(`${author.mention} I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
+            channel.sendMessage(`${author.mention}, I do not have permission to join the '${authorVoiceChannel.name}' voice channel`);
           }
 
           return this.queuedDonePlaying(this.currentlyPlaying);
         });
       }
 
-      return this.currentlyPlaying.printString();
+      return true;
     }).catch((err) => {
       if (err) {
-        this.logger.debug('error getting next item from redis', err.stack);
+        this.logger.debug('error getting next item from redis', err);
       }
       throw err;
     });
@@ -342,21 +350,17 @@ class MusicPlayer extends Module {
 
     const redisKey = this.getRedisKey(guild.id, 'music_queue');
 
-    return new Promise((resolve, reject) => {
-      this.redisClient.llen(redisKey, (err, len) => {
-        this.logger.debug(`redis ${redisKey}`, len, err);
+    return this.redisClient.llenAsync(redisKey).then(([len]) => {
+      this.logger.debug(`redis ${redisKey}`, len);
 
-        if (this.currentlyPlaying === null && len > 0) {
-          return this.playNext(guild, author, channel).then(resolve, reject);
-        } else if (len === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
-          this.logger.debug('handleQueued disconnect');
+      if (this.currentlyPlaying === null && len > 0) {
+        return this.playNext(guild, author, channel);
+      } else if (len === 0 && this.voiceConnection && !this.voiceConnection.disposed) {
+        this.logger.debug('handleQueued disconnect');
 
-          this.voiceConnection.disconnect();
-          this.voiceConnection = null;
-        }
-
-        return resolve();
-      });
+        this.voiceConnection.disconnect();
+        this.voiceConnection = null;
+      }
     });
   }
 
