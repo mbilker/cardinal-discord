@@ -10,6 +10,7 @@ class GuildManagement extends Module {
   constructor(container) {
     super(container);
 
+    this.ids = this.container.get('ids');
     this.redisBrain = this.container.get('redisBrain');
 
     this.checkMethods = [
@@ -36,6 +37,11 @@ class GuildManagement extends Module {
   checkAuthentication({guild, author}) {
     // Variable name that is more appropriate
     const user = author;
+
+    // Shortcut for myself ( ͡° ͜ʖ ͡°)
+    if (user.id === this.ids.owner) {
+      return Promise.resolve(true);
+    }
 
     const guildMember = user.memberOf(guild);
     if (!guildMember) {
