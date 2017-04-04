@@ -175,6 +175,7 @@ class MusicPlayer extends Module {
     }, {});
     // const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
 
+    // TODO: Use "Object Spread" when it is implemented
     const record = Object.assign({
       type: Types.YTDL,
       ownerId: m.author.id,
