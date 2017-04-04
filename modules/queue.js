@@ -149,29 +149,7 @@ class MusicPlayer extends Module {
         this.logger.debug('error pulling youtube data', err.stack);
       }
 
-      fs.access(url, fs.R_OK, (err2) => {
-        this.logger.debug('file access', err2);
-
-        if (!err2) {
-          const info = {
-            title: 'ffmpeg',
-            format: 'ffmpeg',
-            encoding: 'ffmpeg',
-            url,
-          };
-
-          const record = {
-            type: Types.LOCAL,
-            ownerId: m.author.id,
-            guildId: m.guild.id,
-            info,
-          };
-
-          return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
-        }
-
-        this.logger.error('file access error', err2);
-      });
+      return m.reply('Sorry, I was not able to queue that song.');
     });
   }
 
