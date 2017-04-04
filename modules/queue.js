@@ -64,12 +64,7 @@ class MusicPlayer extends Module {
     const key = this.getRedisKey(m.guild.id, 'music_queue');
     let msg = '';
 
-    this.redisClient.llen(key, (err, len) => {
-      if (err) {
-        this.logger.error('error reading list length from redis', err);
-        return m.reply('I could not read the queue list from Redis.');
-      }
-
+    return this.redisClient.llenAsync(key).then(([len]) => {
       if (this.currentlyPlaying) {
         msg += 'Currently Playing:\n';
         msg += this.currentlyPlaying.printString();
@@ -81,8 +76,8 @@ class MusicPlayer extends Module {
         msg += '- Nothing!\n';
         return m.channel.sendMessage(msg);
       } else {
-        return this.redisClient.lrangeAsync(key, 0, len).then((list) => {
-          const promises = Promise.resolve();
+        return this.redisClient.lrangeAsync(key, 0, len).then(([list]) => {
+          let promise = Promise.resolve();
 
           for (const item of list) {
             // TODO: cache these values earlier
@@ -94,7 +89,7 @@ class MusicPlayer extends Module {
             }
           }
 
-          promise = promise.push(() => m.channel.sendMessage(msg));
+          promise = promise.then(() => m.channel.sendMessage(msg));
 
           return promise.catch((err) => {
             this.logger.error('error sending messages', err);
@@ -105,6 +100,11 @@ class MusicPlayer extends Module {
             return m.reply('I could not get the queue playlist from Redis.');
           }
         });
+      }
+    }).catch((err) => {
+      if (err) {
+        this.logger.error('error redis llen', err);
+        return m.reply('I could not get the queue playlist length from Redis.');
       }
     });
   }
@@ -164,14 +164,14 @@ class MusicPlayer extends Module {
       info[field.to || field.from] = obj[field.from];
       return info;
     }, {});
-    const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
+    // const formats = [obj.formats.find(elem => elem.format_id === obj.format_id)];
 
     const record = {
       type: Types.YTDL,
       ownerId: m.author.id,
       guildId: m.guild.id,
       info,
-      formats,
+      // formats,
     };
 
     return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
