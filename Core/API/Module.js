@@ -16,13 +16,13 @@ class Module {
   hears(cmd, func) {
     this.logger.debug(`${this.constructor.name} registered ${cmd} with ${func.name}`);
 
-    this.commandManager.add(this, cmd.toString().split('/')[1], func);
+    this.commandManager.add(this, cmd.toString().split('/')[1], func.bind(this));
   }
 
   listens(cmd, func) {
     this.logger.debug(`${this.constructor.name} registered ${cmd} with ${func.name}`);
 
-    this.commandManager.add(this, cmd, func, true);
+    this.commandManager.add(this, cmd, func.bind(this), true);
   }
 }
 

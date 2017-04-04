@@ -12,7 +12,7 @@ class EvalCommand extends Module {
   constructor(container) {
     super(container);
 
-    this.hears(/eval/i, this.onEvalCommand.bind(this));
+    this.hears(/eval/i, this.onEvalCommand);
   }
 
   onEvalCommand(m, args) {

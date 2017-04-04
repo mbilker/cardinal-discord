@@ -23,7 +23,7 @@ class BackupCommand extends Module {
     this._agent = new http.Agent({ keepAlive: false, maxSockets: 500 });
     this._secureAgent = new https.Agent({ keepAlive: false, maxSockets : 500 });
 
-    this.hears(/backup/i, this.onBackupCommand.bind(this));
+    this.hears(/backup/i, this.onBackupCommand);
   }
 
   getRedisKey(guildId, ...scopes) {
