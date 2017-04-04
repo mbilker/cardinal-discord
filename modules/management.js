@@ -4,7 +4,7 @@ const Discordie = require('discordie');
 
 const Module = require('../Core/API/Module');
 
-const REGEX = /<@([0-9]+)>/;
+const REGEX = /<@[!]?([0-9]+)>/;
 
 class GuildManagement extends Module {
   constructor(container) {
