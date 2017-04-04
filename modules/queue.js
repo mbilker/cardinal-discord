@@ -81,7 +81,7 @@ class MusicPlayer extends Module {
         msg += '- Nothing!\n';
         return m.channel.sendMessage(msg);
       } else {
-        return this.redisClient.lrangeAsync(key, 0, len).then((err, list) => {
+        return this.redisClient.lrangeAsync(key, 0, len).then((list) => {
           const promises = Promise.resolve();
 
           for (const item of list) {
