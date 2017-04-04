@@ -66,9 +66,8 @@ class MusicPlayer extends Module {
 
     this.redisClient.llen(key, (err, len) => {
       if (err) {
-        this.logger.debug('error reading list length from redis', err, err.stack);
-        m.channel.sendMessage('Error reading queue list from Redis');
-        return;
+        this.logger.error('error reading list length from redis', err);
+        return m.reply('I could not read the queue list from Redis.');
       }
 
       if (this.currentlyPlaying) {
@@ -80,22 +79,31 @@ class MusicPlayer extends Module {
       msg += 'Playlist:\n';
       if (!len) {
         msg += '- Nothing!\n';
-        m.channel.sendMessage(msg);
+        return m.channel.sendMessage(msg);
       } else {
-        this.redisClient.lrange(key, 0, len, (err, list) => {
-          if (err) {
-            this.logger.debug('error redis lrange', err, err.stack);
-            m.channel.sendMessage('Error getting queue playlist from Redis');
-            return;
-          }
+        return this.redisClient.lrange(key, 0, len).then((err, list) => {
+          const promises = Promise.resolve();
 
           for (const item of list) {
             // TODO: cache these values earlier
             const a = new QueuedMedia(this, JSON.parse(item));
-            msg += `${a.printString()}\n`;
+            const text = `${a.printString()}\n`;
+            if (msg.length + text.length >= 2000) {
+              promise = promise.then(() => m.channel.sendMessage(msg));
+              msg = '';
+            }
           }
 
-          m.channel.sendMessage(msg);
+          promise = promise.push(() => m.channel.sendMessage(msg));
+
+          return promise.catch((err) => {
+            this.logger.error('error sending messages', err);
+          });
+        }).catch((err) => {
+          if (err) {
+            this.logger.error('error redis lrange', err);
+            return m.reply('I could not get the queue playlist from Redis.');
+          }
         });
       }
     });
