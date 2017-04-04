@@ -1,6 +1,4 @@
-const debug = require('debug');
-
-debug.enable('hubot*,cardinal*');
+#!/usr/bin/env node
 
 const Main = require('./Core/Main');
 
