@@ -57,7 +57,7 @@ class CommandManager {
       }
 
       const promise = Promise.resolve(res).then((ret) => {
-        this.logger.debug(`${name} ret ${ret}`);
+        this.logger.debug(`${name} ret`, ret);
       }).catch((err) => {
         this.logger.error(`${name} threw error ${err.stack}`);
         errCb(err);
