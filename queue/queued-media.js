@@ -28,12 +28,12 @@ class QueuedMedia {
     this.time = null;
 
     if (this.type === Types.YTDL) {
-      this.id = record.info.display_id;
+      this.id = record.info.id;
       this.duration = record.info.duration;
       // this.formats = record.formats;
       // this.formatIndex = 0;
 
-      this.encoding = record.info.acodec;
+      this.encoding = record.info.encoding;
       this.url = record.info.url;
 
       // const format = this.formats[this.formatIndex];

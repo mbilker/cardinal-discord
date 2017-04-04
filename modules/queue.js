@@ -76,20 +76,11 @@ class MusicPlayer extends Module {
         return this.redisClient.lrangeAsync(key, 0, len).then(([list]) => {
           let promise = Promise.resolve();
 
-          for (const item of list) {
-            // TODO: cache these values earlier
-            const a = new QueuedMedia(this, JSON.parse(item));
-            const text = `${a.printString()}\n`;
-            if (msg.length + text.length >= 2000) {
-              promise = promise.then((function(msg) {
-                return () => m.channel.sendMessage(msg);
-              })(msg));
-              msg = '';
-            }
-            msg += text;
-          }
-
-          promise = promise.then(() => m.channel.sendMessage(msg));
+          const entries = list.map((entry) => Utils.formatInfo(entry));
+          const msgs = this.printItems(entries);
+          msgs.forEach((msg) => {
+            promise = promise.then(() => m.channel.sendMessage(msg));
+          });
 
           return promise.catch((err) => {
             this.logger.error('error sending messages', err);
@@ -107,6 +98,25 @@ class MusicPlayer extends Module {
         return m.reply('I could not get the queue playlist length from Redis.');
       }
     });
+  }
+
+  printItems(entries) {
+    const msgs = [];
+    let currentMsg = '';
+
+    for (const text of entries) {
+      if (currentMsg.length + text.length >= 2000) {
+        msgs.push(currentMsg);
+        currentMsg = '';
+      }
+      currentMsg += `${text}\n`;
+    }
+
+    if (currentMsg.length > 0) {
+      msgs.push(currentMsg);
+    }
+
+    return msgs;
   }
 
   queueItems(m, args) {
@@ -154,11 +164,10 @@ class MusicPlayer extends Module {
   queueAddItem(m, obj) {
     const fields = [
       { from: 'title' },
-      { from: 'display_id' },
+      { from: 'display_id', to: 'id' },
       { from: 'duration' },
-      { from: 'acodec' },
+      { from: 'acodec', to: 'encoding' },
       { from: 'url' },
-      { from: 'ext', to: 'extension' },
     ];
     const info = fields.reduce((info, field) => {
       info[field.to || field.from] = obj[field.from];
@@ -190,17 +199,16 @@ class MusicPlayer extends Module {
   queuePostAddItem(m, records) {
     console.log(records);
 
-    return this.handleQueued(m.guild, m.author, m.channel).then((printString) => {
-      // short cicuit
-      return;
+    let promise = Promise.resolve();
 
-      this.logger.debug('queueSave promise resolve', !!printString);
-      if (printString) {
-        return m.channel.sendMessage(`Added ${printString}`);
-      } else {
-        const tempQueued = new QueuedMedia(this, record);
-        return m.channel.sendMessage(`Added ${tempQueued.printString()}`);
-      }
+    const entries = records.map((entry) => `Added ${Utils.formatInfo(entry)}`);
+    const msgs = this.printItems(entries);
+    msgs.forEach((msg) => {
+      promise = promise.then(() => m.channel.sendMessage(msg));
+    });
+
+    return promise.then(() => this.handleQueued(m.guild, m.author, m.channel)).then((res) => {
+      this.logger.debug('queueSave promise resolve', res)
     });
   }
 
