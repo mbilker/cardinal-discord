@@ -4,8 +4,9 @@ const path = require('path');
 
 const chalk = require('chalk');
 
-const CommandManager = require('./CommandManager.js');
+const CommandManager = require('./CommandManager');
 const Module = require('./API/Module');
+const Secrets = require('./Secrets');
 
 const packageOptions = require('../package.json');
 const oauth = require('../oauth_token.json');
@@ -66,7 +67,7 @@ class Main {
     this.container.set('loadedModules', this.loadedModules);
 
     this.secrets = Secrets;
-    this.secrets.add('oauth', oauth);
+    this.secrets.set('oauth', oauth);
     this.container.set('secrets', this.secrets);
   }
 
