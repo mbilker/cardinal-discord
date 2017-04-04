@@ -94,6 +94,10 @@ function fetchYoutubeInfo(url) {
       });
     });
 
+    req.on('error', (err) => {
+      reject(err);
+    });
+
     req.end();
   });
 }
