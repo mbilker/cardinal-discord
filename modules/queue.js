@@ -51,16 +51,13 @@ class MusicPlayer extends Module {
   }
 
   onNowPlaying(m) {
-    this.logger.debug('QUEUE_DISPLAY_NOW_PLAYING');
     if (this.currentlyPlaying === null) {
-      m.channel.sendMessage('No queued song');
-      return;
+      return m.reply('No queued song.');
     }
-    m.channel.sendMessage(this.currentlyPlaying.printString());
+    return m.channel.sendMessage(this.currentlyPlaying.printString());
   }
 
   onDisplayPlaylist(m) {
-    this.logger.debug('QUEUE_DISPLAY_PLAYLIST');
     const key = this.getRedisKey(m.guild.id, 'music_queue');
     let msg = '';
 
@@ -84,9 +81,12 @@ class MusicPlayer extends Module {
             const a = new QueuedMedia(this, JSON.parse(item));
             const text = `${a.printString()}\n`;
             if (msg.length + text.length >= 2000) {
-              promise = promise.then(() => m.channel.sendMessage(msg));
+              promise = promise.then((function(msg) {
+                return () => m.channel.sendMessage(msg);
+              })(msg));
               msg = '';
             }
+            msg += text;
           }
 
           promise = promise.then(() => m.channel.sendMessage(msg));
@@ -261,15 +261,28 @@ class MusicPlayer extends Module {
       return m.reply(`You are not authorized to perform this action.`);
     }
 
-    if (!this.currentlyPlaying) {
-      return m.channel.sendMessage('No currently playing song');
-    } else if (!this.currentlyPlaying.stream) {
-      return m.channel.sendMessage('For some reason this song does not have a stream associated with it');
-    }
+    const key = this.getRedisKey(m.guild.id, 'music_queue');
 
-    this.currentlyPlaying.stopPlaying();
-    this.currentlyPlaying = null;
-    return this.handleQueued(m.guild);
+    return this.redisClient.llenAsync(key).then(([len]) => {
+      let author = m.author;
+
+      if (len === 0) {
+        if (!this.currentlyPlaying) {
+          return m.channel.sendMessage('No currently playing song');
+        } else if (!this.currentlyPlaying.stream) {
+          return m.channel.sendMessage('For some reason this song does not have a stream associated with it');
+        }
+
+        author = null;
+      }
+
+      if (this.currentlyPlaying) {
+        this.currentlyPlaying.stopPlaying();
+        this.currentlyPlaying = null;
+      }
+
+      return this.handleQueued(m.guild, author);
+    });
   }
 
   playNext(guild, author, channel) {
