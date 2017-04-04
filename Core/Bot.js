@@ -5,8 +5,6 @@ const util = require('util');
 
 const Discordie = require('discordie');
 
-const oath = require('../hubot_oath.json');
-
 class Bot {
   constructor(container) {
     this.container = container;
@@ -27,9 +25,11 @@ class Bot {
   }
 
   start() {
+    const oauth = this.container.get('secrets').get('oauth');
+
     if (this.container.get('environment') === 'production') {
       this.client.connect({
-        token: oath.response.token
+        token: oauth.response.token
       });
     }
   }
@@ -49,7 +49,7 @@ class Bot {
   onGatewayReady(e) {
     this.logger.info(`Connected as: ${this.client.User.username}`);
 
-    this.primaryGuild = this.client.Guilds.getBy('id', oath.mainGuildId);
+    this.primaryGuild = this.client.Guilds.getBy('id', this.container.get('ids').mainGuild);
 
     if (this.primaryGuild) {
       this.logger.info('Found correct server!');
