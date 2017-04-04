@@ -46,10 +46,6 @@ class MusicPlayer extends Module {
     }
   }
 
-  getRedisKey(guildId, scope) {
-    return `cardinal.${guildId}.${scope}`;
-  }
-
   onNowPlaying(m) {
     if (this.currentlyPlaying === null) {
       return m.reply('No queued song.');
@@ -220,7 +216,7 @@ class MusicPlayer extends Module {
         return { id: filePath, title: entry.file };
       })
     ).then((entries) => {
-      const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+      const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
       this.redisClient.set(redisKey, JSON.stringify(entries));
 
       const response = entries.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
@@ -236,7 +232,7 @@ class MusicPlayer extends Module {
         return { id: item.id.videoId, title: item.snippet.title };
       });
 
-      const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+      const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
       this.redisClient.set(redisKey, JSON.stringify(useful));
 
       const response = useful.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
@@ -256,7 +252,7 @@ class MusicPlayer extends Module {
     }
 
     const position = index - 1;
-    const redisKey = this.getRedisKey(m.guild.id, `${m.channel.id}.search`);
+    const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
 
     return this.redisClient.getAsync(redisKey).then(([ result ]) => {
       if (!result) {

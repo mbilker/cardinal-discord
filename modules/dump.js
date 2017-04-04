@@ -26,8 +26,8 @@ class BackupCommand extends Module {
     this.hears(/backup/i, this.onBackupCommand.bind(this));
   }
 
-  getRedisKey(guildId, scope) {
-    return `cardinal.${guildId}.channelbackup.${Array.isArray(scope) ? scope.join('.') : scope}`;
+  getRedisKey(guildId, ...scopes) {
+    return super.getRedisKey(guildId, 'channelbackup', ...scopes);
   }
 
   extractId(mention) {
@@ -48,9 +48,9 @@ class BackupCommand extends Module {
     const channelId = textChannel.id;
 
     const redisKeys = [
-      this.getRedisKey(guildId, [channelId, 'avatars']),
-      this.getRedisKey(guildId, [channelId, 'messages']),
-      this.getRedisKey(guildId, [channelId, 'info'])
+      this.getRedisKey(guildId, channelId, 'avatars'),
+      this.getRedisKey(guildId, channelId, 'messages'),
+      this.getRedisKey(guildId, channelId, 'info'),
     ];
 
     return this.redisClient.delAsync(redisKeys);
@@ -223,16 +223,16 @@ class BackupCommand extends Module {
     return Promise.all(allPromises).then(([ zipAvatars, messages ]) => {
       const redisPromises = [];
       for (const zip of zipAvatars) {
-        const redisKey = this.getRedisKey(guildId, [channelId, 'avatars']);
+        const redisKey = this.getRedisKey(guildId, channelId, 'avatars');
         redisPromises.push(this.redisClient.hsetAsync(redisKey, zip[0], zip[1]));
       }
 
       for (const message of messages) {
-        const redisKey = this.getRedisKey(guildId, [channelId, 'messages']);
+        const redisKey = this.getRedisKey(guildId, channelId, 'messages');
         redisPromises.push(this.redisClient.rpushAsync(redisKey, JSON.stringify(message)));
       }
 
-      const infoRedisKey = this.getRedisKey(guildId, [channelId, 'info']);
+      const infoRedisKey = this.getRedisKey(guildId, channelId, 'info');
       redisPromises.push(this.redisClient.setAsync(infoRedisKey, JSON.stringify(info)));
 
       return Promise.all(redisPromises);

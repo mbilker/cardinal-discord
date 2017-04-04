@@ -8,6 +8,11 @@ class Module {
     this.commandManager = container.get('commandManager');
   }
 
+  getRedisKey(guildId, ...scopes) {
+    const scope = (scopes.length > 0 ? '.' : '') + scopes.join('.');
+    return `cardinal.${guildId}${scope}`;
+  }
+
   hears(cmd, func) {
     this.logger.debug(`${this.constructor.name} registered ${cmd} with ${func.name}`);
 
