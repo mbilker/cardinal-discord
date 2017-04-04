@@ -127,13 +127,13 @@ class MusicPlayer extends Module {
         const promises = [];
 
         for (const entry of obj.entries) {
-          promises.push(this.addItemToQueue(guildId, entry));
+          promises.push(this.addItemToQueue(m, entry));
         }
 
         return promises;
       }
 
-      return this.addItemToQueue(guildId, obj);
+      return this.addItemToQueue(m, obj);
     }).catch((err) => {
       if (err) {
         this.logger.debug('error pulling youtube data', err.stack);
@@ -143,7 +143,7 @@ class MusicPlayer extends Module {
     });
   }
 
-  addItemToQueue(guildId, obj) {
+  addItemToQueue(m, obj) {
     const fields = [
       { from: 'title' },
       { from: 'display_id' },
@@ -166,7 +166,7 @@ class MusicPlayer extends Module {
       formats,
     };
 
-    return this.queueSave(guildId, record).then(this.afterRedisSave.bind(this, m));
+    return this.queueSave(m.guild.id, record).then(this.afterRedisSave.bind(this, m));
   }
 
   queueSave(guildId, record) {
