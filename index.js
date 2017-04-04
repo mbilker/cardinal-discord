@@ -13,7 +13,16 @@ const BotStatus = require('./modules/status');
 
 Queue.useMPD = false;
 
+let environment = process.env.NODE_ENV || 'production';
+if (process.argv.length > 2) {
+  if (process.argv[2] === '--testing') {
+    environment = 'testing';
+  }
+}
+
 Main.initialize({
+  environment: environment,
+
   prefix: '`',
   modules: [BackupCommand, EvalCommand, HelpCommand, MathCommand, Nicehash, PingPong, Queue, BotStatus],
 

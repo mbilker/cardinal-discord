@@ -48,6 +48,7 @@ class Main {
     this.container = new Map();
 
     this.container.set('shutdownMode', false);
+    this.container.set('environment', this.options.environment);
     this.container.set('settings', this.options.settings);
 
     this.setupLogger();
@@ -117,6 +118,10 @@ class Main {
 
   run() {
     console.log(chalk.blue(`\n\n\t${this.packageOptions.name} v${this.packageOptions.version} - by ${this.packageOptions.author}\n\n`));
+
+    if (this.options.environment !== 'production') {
+      console.log(chalk.yellow(`\tRunning in ${this.options.environment} mode. Not connecting to Discord.\n\n`));
+    }
 
     if (this.options.prefix) {
       this.logger.info(`Set command prefix to '${this.options.prefix}'`);

@@ -27,9 +27,11 @@ class Bot {
   }
 
   start() {
-    this.client.connect({
-      token: oath.response.token
-    });
+    if (this.container.get('environment') === 'production') {
+      this.client.connect({
+        token: oath.response.token
+      });
+    }
   }
 
   reconnect(channel) {
