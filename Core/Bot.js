@@ -133,28 +133,6 @@ class Bot {
   }
 }
 
-// bot.on('debug', (msg) => {
-//   debug(msg);
-// });
-//function shutdownCb(err) {
-//  console.log(err && err.stack);
-//
-//  try {
-//    bot.logout();
-//  } finally {
-//    return process.exit(1);
-//  }
-//}
-//Dispatcher.on('ctrlc', shutdownCb);
-
-const helpText = `This is *Cardinal*. A general purpose robot.
-
-\`\`\`
-Commands:
-- ping|pong
-  Simple ping and pong to see if bot is responding
-\`\`\``;
-
 /*
 client.Dispatcher.onAny((type, args) => {
   console.log("\nevent "+type);
