@@ -120,7 +120,7 @@ function formatInfo(self) {
   const title = self.title ? `**${self.title}**` : '';
 
   if (self.type === Types.YTDL) {
-    const length = formatTime(self.duration);
+    const length = formatTime(parseInt(self.duration));
 
     return `(${time}${length}) \`[${self.encoding}]\` ${title} (${self.id}) (<@${self.ownerId}>)`;
   }
