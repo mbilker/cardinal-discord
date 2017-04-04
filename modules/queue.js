@@ -27,7 +27,7 @@ class MusicPlayer extends Module {
 
     this.hears(/np/i, this.onNowPlaying.bind(this));
     this.hears(/li/i, this.onDisplayPlaylist.bind(this));
-    this.hears(/queue/i, this.queueItem.bind(this));
+    this.hears(/queue/i, this.queueItems.bind(this));
     this.hears(/next/i, this.skipSong.bind(this));
     this.hears(/yt/i, this.onYoutube.bind(this));
     this.hears(/sel/i, this.onSelectSearchResult.bind(this));
@@ -101,9 +101,17 @@ class MusicPlayer extends Module {
     });
   }
 
-  queueItem(m, args) {
-    const url = args.join(' ');
+  queueItems(m, args) {
+    const promises = [];
 
+    for (const url of args) {
+      promises.push(this.queueItem(m, url));
+    }
+
+    return Promise.all(promises);
+  }
+
+  queueItem(m, url) {
     this.logger.debug('QUEUE_ITEM', url);
     if (!url) {
       this.logger.debug('no valid url');
