@@ -213,15 +213,7 @@ class QueuedMedia {
   }
 
   printString() {
-    const time = this.time ? `${Utils.formatTime(this.time | 0)}/` : '';
-    const title = this.title ? `**${this.title}**` : '';
-
-    if (this.type === Types.YTDL) {
-      const length = Utils.formatTime(this.duration);
-
-      return `(${time}${length}) \`[${this.encoding}]\` ${title} (${this.id}) (<@${this.ownerId}>)`;
-    }
-    return `NON-YTDL \`[${this.encoding}]\` ${title} - ${this.url}`;
+    return Utils.formatInfo(this);
   }
 };
 

@@ -5,6 +5,8 @@ const http = require('http');
 const google = require('googleapis');
 //const ytdl = require('ytdl-core');
 
+const Types = require('./types');
+
 const youtube = google.youtube('v3');
 
 const apiKey = require('../google_api.json').apiKey;
@@ -113,9 +115,22 @@ function searchYoutube(searchString) {
   });
 };
 
+function formatInfo(self) {
+  const time = self.time ? `${formatTime(self.time | 0)}/` : '';
+  const title = self.title ? `**${self.title}**` : '';
+
+  if (self.type === Types.YTDL) {
+    const length = formatTime(self.duration);
+
+    return `(${time}${length}) \`[${self.encoding}]\` ${title} (${self.id}) (<@${self.ownerId}>)`;
+  }
+  return `NON-YTDL \`[${self.encoding}]\` ${title} - ${self.url}`;
+};
+
 module.exports = {
 //  sortFormats,
   formatTime,
   fetchYoutubeInfo,
   searchYoutube,
+  formatInfo,
 };
