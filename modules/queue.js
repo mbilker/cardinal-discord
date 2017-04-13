@@ -314,7 +314,9 @@ class MusicPlayer extends Module {
         return false;
       } else if (this.voiceConnection && !this.voiceConnection.disposed && this.voiceConnection.canStream) {
         this.currentlyPlaying.play(this.voiceConnection);
-      } else {
+
+        return true;
+      } else if (authorVoiceChannel) {
         return authorVoiceChannel.join(false, false).then((info) => {
           this.logger.debug(`joined voice chat: ${info.voiceSocket.voiceServerURL}@${info.voiceSocket.mode}`);
 
@@ -334,7 +336,7 @@ class MusicPlayer extends Module {
         });
       }
 
-      return true;
+      return false;
     }).catch((err) => {
       if (err) {
         this.logger.debug('error getting next item from redis', err);
