@@ -76,7 +76,7 @@ class Utils {
   }
 
   formatInfo(self) {
-    const time = self.time ? `${formatTime(self.time | 0)}/` : '';
+    const time = self.time ? `${this.formatTime(self.time | 0)}/` : '';
     const title = self.title ? `**${self.title}**` : '';
 
     const owner = this.container.get('bot').client ? (
