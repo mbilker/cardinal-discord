@@ -122,9 +122,9 @@ function formatInfo(self) {
   if (self.type === Types.YTDL) {
     const length = formatTime(parseInt(self.duration));
 
-    return `(${time}${length}) \`[${self.encoding}]\` ${title} (${self.id}) (<@${self.ownerId}>)`;
+    return `(${time}${length}) \`[${self.encoding}]\` ${title} (${self.id}) (${self.ownerId})`;
   }
-  return `NON-YTDL \`[${self.encoding}]\` ${title} - ${self.url}`;
+  return `NON-YTDL \`[${self.encoding}]\` ${title} - ${self.url} (${self.ownerId})`;
 };
 
 module.exports = {
