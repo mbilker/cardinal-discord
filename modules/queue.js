@@ -19,6 +19,8 @@ class MusicPlayer extends Module {
     this.redisClient = this.container.get('redisBrain');
     this.settings = this.container.get('settings');
 
+    this.utils = new Utils(container);
+
     this.currentlyPlaying = null;
     this.voiceConnection = null;
     this.recordCache = new Map();
@@ -72,7 +74,7 @@ class MusicPlayer extends Module {
         return this.redisClient.lrangeAsync(key, 0, len).then(([list]) => {
           let promise = m.channel.sendMessage(msg);
 
-          const entries = list.map((entry) => Utils.formatInfo(JSON.parse(entry)));
+          const entries = list.map((entry) => this.utils.formatInfo(JSON.parse(entry)));
           const msgs = this.printItems(entries);
           msgs.forEach((msg) => {
             promise = promise.then(() => m.channel.sendMessage(msg));
@@ -134,7 +136,7 @@ class MusicPlayer extends Module {
 
     const guildId = m.guild.id;
 
-    return Utils.fetchYoutubeInfo(url).then((obj) => {
+    return this.utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
 
       const promises = [];
@@ -196,7 +198,7 @@ class MusicPlayer extends Module {
 
     let promise = Promise.resolve();
 
-    const entries = records.map((entry) => `Added ${Utils.formatInfo(entry)}`);
+    const entries = records.map((entry) => `Added ${this.utils.formatInfo(entry)}`);
     const msgs = this.printItems(entries);
     msgs.forEach((msg) => {
       promise = promise.then(() => m.channel.sendMessage(msg));
@@ -227,7 +229,7 @@ class MusicPlayer extends Module {
   onYoutube(m, args) {
     const text = args.join(' ');
 
-    return Utils.searchYoutube(text).then((results) => {
+    return this.utils.searchYoutube(text).then((results) => {
       const useful = results.items.map((item) => {
         return { id: item.id.videoId, title: item.snippet.title };
       });

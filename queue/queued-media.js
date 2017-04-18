@@ -7,7 +7,6 @@ const debug = require('debug')('cardinal:queued-media');
 const https = require('follow-redirects').https;
 
 const Types = require('./types');
-const Utils = require('./utils');
 
 const YOUTUBE_DL_STORAGE_DIRECTORY = process.env.YOUTUBE_DL_STORAGE_DIRECTORY || '/music';
 
@@ -15,7 +14,11 @@ let logger = null;
 
 class QueuedMedia {
   constructor(musicPlayer, record) {
-    this.musicPlayer = musicPlayer;
+    Object.defineProperty(this, 'musicPlayer', {
+      enumerable: false,
+      value: musicPlayer,
+    });
+
     this.type = record.type;
     this.ownerId = record.ownerId;
     this.guildId = record.guildId;
@@ -217,7 +220,7 @@ class QueuedMedia {
   }
 
   printString() {
-    return Utils.formatInfo(this);
+    return this.musicPlayer.utils.formatInfo(this);
   }
 };
 
