@@ -84,7 +84,7 @@ class Utils {
     ) : self.ownerId;
 
     if (self.type === Types.YTDL) {
-      const length = formatTime(parseInt(self.duration));
+      const length = this.formatTime(parseInt(self.duration));
 
       return `(${time}${length}) \`[${self.encoding}]\` ${title} (${self.id}) (${owner})`;
     }
