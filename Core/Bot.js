@@ -44,7 +44,7 @@ class Bot {
     //  .then(info => this.onConnected(info))
     channel.join()
       .then(info => this.onVoiceConnected(info))
-      .catch(err => this.logger.warn(`Failed to connect to ${channelName}`));
+      .catch(err => this.logger.warn(`Failed to connect to ${channelName}`, err));
   }
 
   onGatewayReady(e) {
