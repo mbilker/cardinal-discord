@@ -20,8 +20,10 @@ class Bot {
   setupEventHandlers() {
     this.client.Dispatcher.on(Discordie.Events.GATEWAY_READY, this.onGatewayReady.bind(this));
     this.client.Dispatcher.on(Discordie.Events.VOICE_DISCONNECTED, this.onVoiceDisconnected.bind(this));
+    this.client.Dispatcher.on(Discordie.Events.GUILD_UNAVAILABLE, this.onGuildUnavailable.bind(this));
     this.client.Dispatcher.on(Discordie.Events.DISCONNECTED, this.onDisconnect.bind(this));
     this.client.Dispatcher.on(Discordie.Events.MESSAGE_CREATE, this.onMessageCreate.bind(this));
+    this.client.Dispatcher.on(Discordie.Events.GUILD_CREATE, this.onGuildCreate.bind(this));
   }
 
   start() {
@@ -34,29 +36,30 @@ class Bot {
     }
   }
 
-  reconnect(channel) {
+  reconnect(channel, retryCount=1) {
     const channelName = channel.name;
 
     // this example will stop reconnecting after 1 attempt
     // you can continue trying to reconnect
 
+    if (retryCount > 5) {
+      this.logger.error(`Failed to reconnect to ${channelName} after ${retryCount - 1} times`);
+    }
+
     // TODO: implement this.onConnected
     //  .then(info => this.onConnected(info))
     channel.join()
       .then(info => this.onVoiceConnected(info))
-      .catch(err => this.logger.warn(`Failed to connect to ${channelName}`, err));
+      .catch(err => {
+        this.logger.warn(`Failed to connect to ${channelName}`, err);
+        setTimeout(() => {
+          this.reconnect(channel, retryCount + 1);
+        }, 1000 * retryCount);
+      });
   }
 
   onGatewayReady(e) {
     this.logger.info(`Connected as: ${this.client.User.username}`);
-
-    this.primaryGuild = this.client.Guilds.getBy('id', this.container.get('ids').mainGuild);
-
-    if (this.primaryGuild) {
-      this.logger.info('Found correct server!');
-    } else {
-      this.logger.warn('Guild not found!');
-    }
   }
 
   onVoiceDisconnected(e) {
@@ -94,6 +97,10 @@ class Bot {
 
   onVoiceConnected(info) {
     this.logger.debug(`Connected to ${info.voiceConnection.channel.name}`);
+  }
+
+  onGuildUnavailable(e) {
+    this.logger.debug(`Guild ${e.guildId} unavailable`);
   }
 
   onDisconnect(e) {
@@ -142,7 +149,19 @@ class Bot {
     //  Dispatcher.emit(Actions.STOP_MUSIC_PLAYBACK, e);
     //}
 
-    this.commandManager.handle(e.message, (err) => this.onCommandError(e.message, err));
+    this.commandManager.handle(e.message).catch((err) => this.onCommandError(e.message, err));
+  }
+
+  onGuildCreate(e) {
+    this.logger.debug(`Guild ${e.guild.name} (id: ${e.guild.id}) is now available (becameAvailable: ${e.becameAvailable})`);
+
+    if (e.guild.id === this.container.get('ids').mainGuild) {
+      this.primaryGuild = this.client.Guilds.getBy('id', this.container.get('ids').mainGuild);
+
+      if (this.primaryGuild) {
+        this.logger.info('Found primary guild!');
+      }
+    }
   }
 }
 
