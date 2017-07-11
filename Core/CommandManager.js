@@ -9,8 +9,11 @@ class CommandManager {
     this.bot = null;
     this.logger = container.get('logger');
 
+    this.commandRegex = '^${prefix}(\\S+)';
+
     this._commands = {};
     this._listeners = new Map();
+    this._commandRegex = null;
     this._prefix = null;
   }
 
@@ -19,7 +22,12 @@ class CommandManager {
   }
 
   setPrefix(prefix) {
+    const regexString = this.commandRegex.replace('${prefix}', prefix);
+
+    this._commandRegex = new RegExp(regexString);
     this._prefix = prefix;
+
+    this.logger.info(`Set command prefix to '${prefix}' (commandRegex: ${this._commandRegex})`);
   }
 
   add(mod, cmd, func, withNoPrefix) {
@@ -39,17 +47,26 @@ class CommandManager {
 
     this.logger.debug(`Handling commands for ${content}`);
 
-    const fullCmd = content.slice(this._prefix.length);
-    const args = fullCmd.split(' ').filter((x, i) => x.length && i == 0);
-    const name = args[0].toLowerCase();
+    const args = content.split(' ').filter(x => x.length);
+    if (args.length < 1) {
+      return Promise.resolve();
+    }
 
-    this.logger.debug(`args: ${args}`);
+    const firstArg = args.shift().toLowerCase();
+    const nameMatch = this._commandRegex.exec(firstArg);
+    if (!nameMatch || !nameMatch[1]) {
+      this.logger.error(`No command name found (firstArg: ${firstArg})`);
+      return Promise.resolve();
+    }
+    const name = nameMatch[1];
+
+    this.logger.debug(`name: ${name}, args: ${args}`);
 
     const func = this._commands[name];
     if (func) {
       this.logger.debug(`Found registered command for ${name}`);
 
-      const res = func(msg, args.slice(1));
+      const res = func(msg, args);
       const promise = Promise.resolve(res).then((ret) => {
         this.logger.debug(`${name} ret`, ret);
       }).catch((err) => {

@@ -134,7 +134,6 @@ class Main {
     }
 
     if (this.options.prefix) {
-      this.logger.info(`Set command prefix to '${this.options.prefix}'`);
       this.commandManager.setPrefix(this.options.prefix);
     }
 
