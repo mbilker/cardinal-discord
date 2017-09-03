@@ -29,7 +29,9 @@ class Utils {
 
   fetchYoutubeInfo(url) {
     return new Promise((resolve, reject) => {
-      const urlPath = querystring.escape(`/download?v=${url}`);
+      const query = querystring.escape(url);
+      const urlPath = `/download?v=${query}`;
+
       const req = http.request({
         method: 'GET',
         hostname: YOUTUBE_DL_SERVICE_HOSTNAME,
