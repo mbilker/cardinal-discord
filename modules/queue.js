@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const url = require('url');
 const util = require('util');
 
 const Module = require('../Core/API/Module');
@@ -136,25 +137,42 @@ class MusicPlayer extends Module {
     }
 
     const guildId = m.guild.id;
-    const url = Array.isArray(args) ? args.join(' ') : args;
+    const filePath = Array.isArray(args) ? args.join(' ') : args;
+    const parsedUrl = url.parse(filePath);
 
-    return this.utils.fetchYoutubeInfo(url).then((obj) => {
-      this.logger.debug('fetchYoutubeInfo promise resolve');
+    let promise = null;
 
-      const promises = [];
+    if (parsedUrl.protocol === 'file:' || parsedUrl.protocol === null) {
+      const record = {
+        type: Types.LOCAL,
+        ownerId: m.author.id,
+        guildId: m.guild.id,
+        url: filePath
+      };
 
-      if (obj['_type'] === 'playlist') {
-        for (const entry of obj.entries) {
-          promises.push(this.queueAddItem(m, entry));
+      promise = this.queueSave(m.guild.id, record)
+        .then((record) => this.queuePostAddItem(m, [record]));
+    } else {
+      promise = this.utils.fetchYoutubeInfo(filePath).then((obj) => {
+        this.logger.debug('fetchYoutubeInfo promise resolve');
+
+        const promises = [];
+
+        if (obj['_type'] === 'playlist') {
+          for (const entry of obj.entries) {
+            promises.push(this.queueAddItem(m, entry));
+          }
+        } else {
+          promises.push(this.queueAddItem(m, obj));
         }
-      } else {
-        promises.push(this.queueAddItem(m, obj));
-      }
 
-      return Promise.all(promises).then((records) => this.queuePostAddItem(m, records));
-    }).catch((err) => {
+        return Promise.all(promises).then((records) => this.queuePostAddItem(m, records));
+      });
+    }
+
+    return promise.catch((err) => {
       if (err) {
-        this.logger.debug('error pulling youtube data', err.stack);
+        this.logger.debug('queueItem error', err.stack);
       }
 
       return m.reply('Sorry, I was not able to queue that song.');
