@@ -29,7 +29,7 @@ class MusicPlayer extends Module {
 
     this.hears(/np/i, this.onNowPlaying.bind(this));
     this.hears(/li/i, this.onDisplayPlaylist.bind(this));
-    this.hears(/queue/i, this.queueItems.bind(this));
+    this.hears(/queue/i, this.queueItem.bind(this));
     this.hears(/next/i, this.skipSong.bind(this));
     this.hears(/yt/i, this.onYoutube.bind(this));
     this.hears(/sel/i, this.onSelectSearchResult.bind(this));
@@ -127,14 +127,16 @@ class MusicPlayer extends Module {
     return Promise.all(promises);
   }
 
-  queueItem(m, url) {
-    this.logger.debug('QUEUE_ITEM', url);
-    if (!url) {
+  queueItem(m, args) {
+    this.logger.debug('QUEUE_ITEM', args);
+
+    if (!args) {
       this.logger.debug('no valid url');
       return m.reply('Please give me a URL to play');
     }
 
     const guildId = m.guild.id;
+    const url = Array.isArray(args) ? args.join(' ') : args;
 
     return this.utils.fetchYoutubeInfo(url).then((obj) => {
       this.logger.debug('fetchYoutubeInfo promise resolve');
