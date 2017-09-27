@@ -3,5 +3,7 @@ logs/
 oauth_token.json
 google_api.json
 
+utils/**/target
+
 node-v*.tar.xz
 node-v*
