@@ -146,7 +146,7 @@ class MusicPlayer extends Module {
       const record = {
         type: Types.LOCAL,
         ownerId: m.author.id,
-        guildId: m.guild.id,
+th        guildId: m.guild.id,
         url: filePath
       };
 
@@ -282,7 +282,7 @@ class MusicPlayer extends Module {
       }
       const entries = JSON.parse(result);
 
-      return this.queueItem(m, [entries[position].id]);
+      return this.queueItem(m, entries[position].id);
     });
   }
 
