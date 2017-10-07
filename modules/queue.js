@@ -12,6 +12,8 @@ const LocalMusicSearch = require('../queue/search');
 const Utils = require('../queue/utils');
 const QueuedMedia = require('../queue/queued-media');
 
+const YOUTUBE_PREFIX = 'https://www.youtube.com/watch?v=';
+
 class MusicPlayer extends Module {
   constructor(container) {
     super(container);
@@ -282,7 +284,7 @@ class MusicPlayer extends Module {
       }
       const entries = JSON.parse(result);
 
-      return this.queueItem(m, entries[position].id);
+      return this.queueItem(m, YOUTUBE_PREFIX + entries[position].id);
     });
   }
 
