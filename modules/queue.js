@@ -146,7 +146,7 @@ class MusicPlayer extends Module {
       const record = {
         type: Types.LOCAL,
         ownerId: m.author.id,
-th        guildId: m.guild.id,
+        guildId: m.guild.id,
         url: filePath
       };
 
