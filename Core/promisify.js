@@ -52,5 +52,5 @@ function promisify(target, original) {
 };
 
 module.exports = function(scope, funcName) {
-  scope[`${funcName}Async`] = promisify(scope, scope[funcName]);
+  return promisify(scope, scope[funcName]);
 };

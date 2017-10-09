@@ -11,14 +11,7 @@ const channelId = process.argv[3];
 console.log(guildId);
 console.log(channelId);
 
-redisBrain.get(`cardinal.${guildId}.channelbackup.${channelId}`, (err, text) => {
-  if (err) {
-    console.error('failed to retrieve messages');
-    console.error(err);
-    redisBrain.quit();
-    return;
-  }
-
+redisBrain.get(`cardinal.${guildId}.channelbackup.${channelId}`).then((text) => {
   const { avatars, messages } = JSON.parse(text);
   const filenameOut = `channel_backup_${channelId}.html`;
   const output = fs.createWriteStream(filenameOut);
@@ -77,4 +70,11 @@ tr td {
   output.end();
   redisBrain.quit();
   console.log(`written to ${filenameOut}`);
+}).catch((err) => {
+  if (err) {
+    console.error('failed to retrieve messages');
+    console.error(err);
+    redisBrain.quit();
+    return;
+  }
 });

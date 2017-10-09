@@ -38,7 +38,7 @@ class BackupCommand extends Module {
   saveToRedis(textChannel, obj) {
     const redisKey = this.getRedisKey(textChannel.guild.id, textChannel.id);
 
-    return this.redisClient.setAsync(redisKey, JSON.stringify(obj)).then(() => {
+    return this.redisClient.set(redisKey, JSON.stringify(obj)).then(() => {
       this.logger.info('saved to redis');
     });
   }
@@ -53,7 +53,7 @@ class BackupCommand extends Module {
       this.getRedisKey(guildId, channelId, 'info'),
     ];
 
-    return this.redisClient.delAsync(redisKeys);
+    return this.redisClient.del(redisKeys);
   }
 
   fetchImage(imageURL) {
@@ -96,7 +96,7 @@ class BackupCommand extends Module {
     // ignore caching for now
     return func();
 
-    return this.redisClient.getAsync(redisKey).then(([ obj ]) => {
+    return this.redisClient.get(redisKey).then(([ obj ]) => {
       if (obj) {
         this.logger.debug(`redis cache exists ${id}`);
         return obj;
@@ -104,7 +104,7 @@ class BackupCommand extends Module {
       return func();
     }).then((obj) => {
       if (obj) {
-        return this.redisClient.setAsync(redisKey, obj).then(() => obj);
+        return this.redisClient.set(redisKey, obj).then(() => obj);
       }
       return obj;
     });
@@ -224,16 +224,16 @@ class BackupCommand extends Module {
       const redisPromises = [];
       for (const zip of zipAvatars) {
         const redisKey = this.getRedisKey(guildId, channelId, 'avatars');
-        redisPromises.push(this.redisClient.hsetAsync(redisKey, zip[0], zip[1]));
+        redisPromises.push(this.redisClient.hset(redisKey, zip[0], zip[1]));
       }
 
       for (const message of messages) {
         const redisKey = this.getRedisKey(guildId, channelId, 'messages');
-        redisPromises.push(this.redisClient.rpushAsync(redisKey, JSON.stringify(message)));
+        redisPromises.push(this.redisClient.rpush(redisKey, JSON.stringify(message)));
       }
 
       const infoRedisKey = this.getRedisKey(guildId, channelId, 'info');
-      redisPromises.push(this.redisClient.setAsync(infoRedisKey, JSON.stringify(info)));
+      redisPromises.push(this.redisClient.set(infoRedisKey, JSON.stringify(info)));
 
       return Promise.all(redisPromises);
     });

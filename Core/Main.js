@@ -24,6 +24,8 @@ class Main {
     this.commandManager = null;
     this.loadedModules = null;
 
+    this.readyPromises = [];
+
     this.buildContainer();
     this.run();
     this.buildRepl();
@@ -81,6 +83,14 @@ class Main {
 
     this.brain = new RedisBrain(this.options.redisUrl);
     this.container.set('redisBrain', this.brain);
+
+    const promise = new Promise((resolve, reject) => {
+      this.brain.once('ready', () => {
+        resolve();
+      });
+    });
+
+    this.readyPromises.push(promise);
   }
 
   loadClient() {
@@ -133,14 +143,18 @@ class Main {
       console.log(chalk.yellow(`\tRunning in ${this.options.environment} mode. Not connecting to Discord.\n\n`));
     }
 
-    if (this.options.prefix) {
-      this.commandManager.setPrefix(this.options.prefix);
-    }
+    Promise.all(this.readyPromises).then(() => {
+      console.log(chalk.green('\tReady to start\n\n'));
 
-    this.loadClient();
-    this.loadModules();
+      if (this.options.prefix) {
+        this.commandManager.setPrefix(this.options.prefix);
+      }
 
-    this.bot.start();
+      this.loadClient();
+      this.loadModules();
+
+      this.bot.start();
+    });
   }
 
   shutdown() {
@@ -155,7 +169,9 @@ class Main {
 
     this.shutdownModules();
 
-    this.bot.client.disconnect();
+    if (this.bot) {
+      this.bot.client.disconnect();
+    }
     this.brain.quit();
 
     //process.exit();

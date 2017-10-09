@@ -62,7 +62,7 @@ class MusicPlayer extends Module {
     const key = this.getRedisKey(m.guild.id, 'music_queue');
     let msg = '';
 
-    return this.redisClient.llenAsync(key).then(([len]) => {
+    return this.redisClient.llen(key).then(([len]) => {
       if (this.currentlyPlaying) {
         msg += 'Currently Playing:\n';
         msg += this.currentlyPlaying.printString();
@@ -74,7 +74,7 @@ class MusicPlayer extends Module {
         msg += '- Nothing!\n';
         return m.channel.sendMessage(msg);
       } else {
-        return this.redisClient.lrangeAsync(key, 0, len).then(([list]) => {
+        return this.redisClient.lrange(key, 0, len).then(([list]) => {
           let promise = m.channel.sendMessage(msg);
 
           const entries = list.map((entry) => this.utils.formatInfo(JSON.parse(entry)));
@@ -208,7 +208,7 @@ class MusicPlayer extends Module {
   queueSave(guildId, record) {
     const redisKey = this.getRedisKey(guildId, 'music_queue');
 
-    return this.redisClient.rpushAsync(redisKey, JSON.stringify(record)).then(() => {
+    return this.redisClient.rpush(redisKey, JSON.stringify(record)).then(() => {
       this.logger.debug('saved to redis');
 
       return record;
@@ -240,11 +240,16 @@ class MusicPlayer extends Module {
         return { id: filePath, title: entry.file };
       })
     ).then((entries) => {
+      let promises = [];
+
       const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
-      this.redisClient.set(redisKey, JSON.stringify(entries));
+      const stringified = JSON.stringify(entries);
+      promises.push(this.redisClient.set(redisKey, stringified));
 
       const response = entries.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
-      return m.channel.sendMessage(response);
+      promises.push(m.channel.sendMessage(response));
+
+      return Promise.all(promises);
     });
   }
 
@@ -252,15 +257,20 @@ class MusicPlayer extends Module {
     const text = args.join(' ');
 
     return this.utils.searchYoutube(text).then((results) => {
+      let promises = [];
+
       const useful = results.items.map((item) => {
         return { id: item.id.videoId, title: item.snippet.title };
       });
 
       const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
-      this.redisClient.set(redisKey, JSON.stringify(useful));
+      const stringified = JSON.stringify(useful);
+      promises.push(this.redisClient.set(redisKey, stringified));
 
       const response = useful.map((item, i) => `**${i + 1}:** ${item.title}`).join('\n');
-      return m.channel.sendMessage(response);
+      promises.push(m.channel.sendMessage(response));
+
+      return Promise.all(promises);
     });
   }
 
@@ -278,7 +288,7 @@ class MusicPlayer extends Module {
     const position = index - 1;
     const redisKey = this.getRedisKey(m.guild.id, m.channel.id, 'search');
 
-    return this.redisClient.getAsync(redisKey).then(([ result ]) => {
+    return this.redisClient.get(redisKey).then(([ result ]) => {
       if (!result) {
         return m.reply('There is no previous search query');
       }
@@ -295,7 +305,7 @@ class MusicPlayer extends Module {
 
     const key = this.getRedisKey(m.guild.id, 'music_queue');
 
-    return this.redisClient.llenAsync(key).then(([len]) => {
+    return this.redisClient.llen(key).then(([len]) => {
       let author = m.author;
 
       if (len === 0) {
@@ -326,7 +336,7 @@ class MusicPlayer extends Module {
     const authorVoiceChannel = (guild && author) ? author.getVoiceChannel(guild) : null;
     const redisKey = this.getRedisKey(guild.id, 'music_queue');
 
-    return this.redisClient.lpopAsync(redisKey).then(JSON.parse).then((record) => {
+    return this.redisClient.lpop(redisKey).then(JSON.parse).then((record) => {
       const next = new QueuedMedia(this, record || {});
       this.currentlyPlaying = next;
 
@@ -379,7 +389,7 @@ class MusicPlayer extends Module {
 
     const redisKey = this.getRedisKey(guild.id, 'music_queue');
 
-    return this.redisClient.llenAsync(redisKey).then(([len]) => {
+    return this.redisClient.llen(redisKey).then(([len]) => {
       this.logger.debug(`redis ${redisKey}`, len);
 
       if (this.currentlyPlaying === null && len > 0) {
