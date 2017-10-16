@@ -22,7 +22,8 @@ Main.initialize({
     'nicehash',
     'pingpong',
     'queue',
-    'status'
+    'status',
+    'sfx'
   ],
 
   redisUrl: process.env.REDIS_URL || 'redis://localhost',
