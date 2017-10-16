@@ -1,18 +1,6 @@
 #!/usr/bin/env node
 
-const Main = require('./Core/Main');
-
-const BackupCommand = require('./modules/dump');
-const EvalCommand = require('./modules/eval');
-const HelpCommand = require('./modules/help');
-const GuildManagement = require('./modules/management');
-const MathCommand = require('./modules/math');
-const Nicehash = require('./modules/nicehash');
-const PingPong = require('./modules/pingpong');
-const Queue = require('./modules/queue');
-const BotStatus = require('./modules/status');
-
-Queue.useMPD = false;
+const Main = require('./lib/core/main');
 
 let environment = process.env.NODE_ENV || 'production';
 if (process.argv.length > 2) {
@@ -25,9 +13,23 @@ Main.initialize({
   environment: environment,
 
   prefix: '`',
-  modules: [BackupCommand, EvalCommand, HelpCommand, GuildManagement, MathCommand, Nicehash, PingPong, Queue, BotStatus],
+  modules: [
+    'dump',
+    'eval',
+    'help',
+    'management',
+    'math',
+    'nicehash',
+    'pingpong',
+    'queue',
+    'status'
+  ],
 
   redisUrl: process.env.REDIS_URL || 'redis://localhost',
+
+  queue: {
+    useMpd: false
+  },
 
   settings: {
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
