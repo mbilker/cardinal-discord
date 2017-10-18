@@ -17,17 +17,15 @@
   },
   "homepage": "https://github.com/mbilker/music-discord#readme",
   "dependencies": {
-    "chalk": "^1.1.3",
+    "chalk": "^2.2.0",
     "discordie": "git+https://github.com/qeled/discordie.git#dev",
     "follow-redirects": "^1.2.2",
-    "googleapis": "^17.1.0",
+    "googleapis": "^22.2.0",
     "keymirror": "^0.1.1",
-    "lodash": "^4.11.1",
     "mathjs": "^3.5.3",
     "mpd": "^1.3.0",
     "node-opus": "^0.2.0",
     "redis": "^2.6.1",
-    "tracer": "^0.8.3",
-    "ytdl-core": "^0.10.0"
+    "tracer": "^0.8.3"
   }
 }
