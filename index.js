@@ -25,6 +25,13 @@ Main.initialize({
     'status'
   ],
 
+  postgres: {
+    host: process.env.POSTGRES_HOST || 'localhost',
+    user: process.env.POSTGRES_USER || 'cardinal',
+    password: process.env.POSTGRES_PASSWORD || 'cardinal',
+    database: process.env.POSTGRES_DATABASE || 'cardinal',
+  },
+
   redisUrl: process.env.REDIS_URL || 'redis://localhost',
 
   queue: {
