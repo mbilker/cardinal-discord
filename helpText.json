@@ -7,6 +7,7 @@
   "li": "Displays current song playlist.",
   "queue": "Adds a song to current song playlist using a YouTube video URL.",
   "next": "(auth) Skips to next song in current song playlist.",
+  "pause": "(auth) Pauses the current song.",
   "sysinfo": "Displays information about Cardinal's system specs and Node.js version.",
   "userinfo": "Prints out JSON representation of calling user."
 }
