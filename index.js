@@ -42,9 +42,9 @@ Main.initialize({
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 
     mpd: {
-      host: 'turret.lab.mbilker.us',
+      host: 'localhost',
       port: 6600,
-      baseDirectory: '/storage/media/mpd'
+      baseDirectory: '/music'
     }
   }
 });
