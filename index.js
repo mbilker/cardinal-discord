@@ -34,17 +34,12 @@ Main.initialize({
 
   redisUrl: process.env.REDIS_URL || 'redis://localhost',
 
-  queue: {
-    useMpd: false
-  },
-
   settings: {
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 
-    mpd: {
-      host: 'localhost',
-      port: 6600,
-      baseDirectory: '/music'
+    elasticsearch: {
+      enable: true,
+      host: 'localhost:9200'
     }
   }
 });
