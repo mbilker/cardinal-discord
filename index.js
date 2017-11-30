@@ -38,8 +38,8 @@ Main.initialize({
     nicehashAddress: '1KiMjCRxfUcwydcUo77gqTDh4sQzGVJ3P5',
 
     elasticsearch: {
-      enable: true,
-      host: 'localhost:9200'
+      enable: (environment === 'production') ? !!process.env.ELASTICSEARCH_URL : true,
+      host: process.env.ELASTICSEARCH_URL || 'localhost:9200'
     }
   }
 });
